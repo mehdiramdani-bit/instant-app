@@ -5,9 +5,22 @@ import urllib.request
 import feedparser
 import schedule
 import re
+import threading
+import http.server
+import socketserver
 from google import genai
 
-# Récupération de la clé API depuis la variable d'environnement (Render / Système)
+# 1. Mini serveur HTTP pour que Render valide le Web Service gratuit
+def run_http_server():
+    port = int(os.environ.get("PORT", 10000))
+    handler = http.server.SimpleHTTPRequestHandler
+    with socketserver.TCPServer(("", port), handler) as httpd:
+        print(f"--> Serveur HTTP actif sur le port {port}")
+        httpd.serve_forever()
+
+threading.Thread(target=run_http_server, daemon=True).start()
+
+# 2. Clé API Gemini
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
 if not GEMINI_API_KEY:
@@ -18,19 +31,14 @@ current_headline = ""
 
 def fetch_live_news():
     rss_sources = [
-        # Généralistes & Breaking News France
         {"url": "https://www.francetvinfo.fr/titres.rss", "domain": "https://www.francetvinfo.fr"},
         {"url": "https://www.lefigaro.fr/rss/figaro_flash-actu.xml", "domain": "https://www.lefigaro.fr"},
         {"url": "https://www.lemonde.fr/en-direct/rss_full.xml", "domain": "https://www.lemonde.fr"},
         {"url": "https://www.bfmtv.com/rss/info/flux-rss/flux-toutes-les-actualites/", "domain": "https://www.bfmtv.com"},
         {"url": "https://www.ouest-france.fr/rss-en-continu.xml", "domain": "https://www.ouest-france.fr"},
-        
-        # International & Géopolitique (en Français)
         {"url": "https://www.rfi.fr/fr/contenu/general/rss", "domain": "https://www.rfi.fr"},
         {"url": "https://www.courrierinternational.com/feed/all/rss.xml", "domain": "https://www.courrierinternational.com"},
         {"url": "https://fr.euronews.com/rss", "domain": "https://fr.euronews.com"},
-        
-        # Économie & Business
         {"url": "https://www.lesechos.fr/rss/rss_une.xml", "domain": "https://www.lesechos.fr"},
         {"url": "https://www.latribune.fr/feed/full/rss.xml", "domain": "https://www.latribune.fr"}
     ]
@@ -73,7 +81,10 @@ def update_html_file(headline=None, url=None):
     heure = time.strftime("%H:%M")
     
     try:
-        with open("app.html", "r", encoding="utf-8") as f:
+        # En hébergement, app.html est servi comme index par défaut
+        filename = "index.html" if os.path.exists("index.html") else "app.html"
+        
+        with open(filename, "r", encoding="utf-8") as f:
             content = f.read()
 
         if headline:
@@ -84,10 +95,16 @@ def update_html_file(headline=None, url=None):
         
         content = re.sub(r'id="time-indicator">.*?</span>', f'id="time-indicator">MàJ {heure}</span>', content)
 
-        with open("app.html", "w", encoding="utf-8") as f:
+        with open(filename, "w", encoding="utf-8") as f:
             f.write(content)
+        
+        # Si index.html existe aussi, on le synchronise
+        if filename == "app.html" and os.path.exists("index.html"):
+            with open("index.html", "w", encoding="utf-8") as f:
+                f.write(content)
+                
     except Exception as e:
-        print(f"--> Erreur lors de la mise à jour de app.html : {e}")
+        print(f"--> Erreur lors de la mise à jour : {e}")
 
 def check_and_update():
     global current_headline
@@ -117,7 +134,7 @@ RÈGLES DE RÉÉCRITURE DU TITRE :
 4. Reste strictly fidèle aux faits bruts. N'invente aucune information.
 
 CONSIGNE DE SORTIE :
-- Si l'information actuellement affichée sur l'écran reste la plus urgente/importante, réponds strictement "NO_CHANGE".
+- Si l'information actuellement affichée sur l'écran reste la plus urgente/importante, réponds strictly "NO_CHANGE".
 - Sinon, renvoie le titre réécrit et l'URL exacte associée à la dépêche originale.
 
 FORMAT STRICT DE RÉPONSE : TITRE_REECRIT|||LINK
@@ -160,6 +177,12 @@ FORMAT STRICT DE RÉPONSE : TITRE_REECRIT|||LINK
     else:
         update_html_file()
         print(f"--> Pas de changement d'actu. Horodatage mis à jour à {time.strftime('%H:%M')}.\n")
+
+# Copie de sécurité : on duplique app.html vers index.html pour que le serveur Web le repère d'emblée
+if os.path.exists("app.html") and not os.path.exists("index.html"):
+    with open("app.html", "r", encoding="utf-8") as f_in:
+        with open("index.html", "w", encoding="utf-8") as f_out:
+            f_out.write(f_in.read())
 
 # Lancement immédiat au démarrage
 check_and_update()
