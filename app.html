@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Recharge la page automatiquement toutes les 30 secondes -->
+  <meta http-equiv="refresh" content="30">
+  <title>Instant</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+      background-color: #0d0d0d;
+      color: #f5f5f7;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 100vh;
+      padding: 3rem 2rem;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      letter-spacing: 0.1em;
+      color: #86868b;
+      text-transform: uppercase;
+    }
+    .brand { font-weight: 700; color: #fff; }
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    .headline {
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 600;
+      line-height: 1.25;
+      letter-spacing: -0.02em;
+      margin-bottom: 2.5rem;
+    }
+    .cta {
+      color: #fff;
+      text-decoration: none;
+      font-size: 1rem;
+      border-bottom: 1px solid #424245;
+      padding-bottom: 4px;
+      width: fit-content;
+      transition: border-color 0.2s ease;
+    }
+    .cta:hover { border-color: #fff; }
+    footer {
+      text-align: center;
+      font-size: 0.8rem;
+      color: #424245;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <span class="brand">INSTANT</span>
+    <span id="time-indicator">MàJ 16:00</span>
+  </header>
+
+  <main>
+    <h1 class="headline" id="headline">Séisme en Colombie : au moins 216 morts et 2 000 blessés</h1>
+    <a href="https://www.lefigaro.fr/international/seisme-en-colombie-le-gouvernement-decrete-un-deuil-de-trois-jours-en-hommage-aux-victimes-20260812" id="source-link" class="cta" target="_blank">Lire la source ↗</a>
+  </main>
+
+  <footer>
+    Une seule info, toutes les 30 minutes.
+  </footer>
+
+</body>
+</html>
