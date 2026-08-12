@@ -1,46 +1,89 @@
-cat << 'EOF' > ~/Desktop/instant-app/app.html
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    
-    <title>Instant</title>
-    
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Instant">
-    
-    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22black%22/><text y=%22.88em%22 x=%2250%25%22 font-size=%2270%22 text-anchor=%22middle%22>⚡️</text></svg>">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡️</text></svg>">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta http-equiv="refresh" content="30">
+  <title>Instant</title>
 
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
-        body, html { width: 100%; height: 100%; background-color: #000000; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
-        header { padding: 24px 28px 0 28px; display: flex; justify-content: space-between; align-items: center; }
-        .brand { font-size: 14px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #8E8E93; }
-        .time { font-size: 13px; font-weight: 500; color: #636366; letter-spacing: 0.5px; }
-        main { padding: 0 28px; flex-grow: 1; display: flex; align-items: center; }
-        #source-link { text-decoration: none; color: inherit; display: block; width: 100%; }
-        h1 { font-size: 38px; font-weight: 800; line-height: 1.15; letter-spacing: -0.5px; color: #F2F2F7; word-wrap: break-word; }
-        footer { padding: 0 28px 24px 28px; display: flex; justify-content: flex-end; }
-        .action-hint { font-size: 12px; color: #48484A; font-weight: 500; letter-spacing: 0.3px; }
-        @media (max-width: 380px) { h1 { font-size: 32px; } }
-    </style>
+  <!-- Configuration PWA iOS -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Instant">
+  <link rel="apple-touch-icon" href="https://fav.farm/⚡️">
+  <link rel="icon" href="https://fav.farm/⚡️">
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+      background-color: #0d0d0d;
+      color: #f5f5f7;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 100vh;
+      padding: clamp(2rem, 5vh, 4rem) 2rem;
+      -webkit-user-select: none;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      letter-spacing: 0.1em;
+      color: #86868b;
+      text-transform: uppercase;
+      margin-top: env(safe-area-inset-top); /* Adapte l'encoche de l'iPhone */
+    }
+    .brand { font-weight: 700; color: #fff; }
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    .headline {
+      font-size: clamp(2rem, 6vw, 3.5rem);
+      font-weight: 600;
+      line-height: 1.25;
+      letter-spacing: -0.02em;
+      margin-bottom: 2.5rem;
+    }
+    .cta {
+      color: #fff;
+      text-decoration: none;
+      font-size: 1rem;
+      border-bottom: 1px solid #424245;
+      padding-bottom: 4px;
+      width: fit-content;
+      transition: border-color 0.2s ease;
+    }
+    .cta:hover { border-color: #fff; }
+    footer {
+      text-align: center;
+      font-size: 0.8rem;
+      color: #424245;
+      margin-bottom: env(safe-area-inset-bottom);
+    }
+  </style>
 </head>
 <body>
-    <header>
-        <span class="brand">INSTANT</span>
-        <span class="time" id="time-indicator">Chargement...</span>
-    </header>
-    <main>
-        <a href="#" id="source-link" target="_blank" rel="noopener noreferrer">
-            <h1 id="headline">Chargement de l'actualité...</h1>
-        </a>
-    </main>
-    <footer>
-        <span class="action-hint">TOUCHER POUR EN SAVOIR PLUS ↗</span>
-    </footer>
+
+  <header>
+    <span class="brand">INSTANT</span>
+    <span id="time-indicator">Chargement...</span>
+  </header>
+
+  <main>
+    <h1 class="headline" id="headline">Initialisation de l'application...</h1>
+    <a href="https://news.google.com" id="source-link" class="cta" target="_blank">Lire la source ↗</a>
+  </main>
+
+  <footer>
+    Une seule info clé, toutes les 30 minutes.
+  </footer>
+
 </body>
 </html>
-EOF
