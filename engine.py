@@ -10,11 +10,25 @@ import http.server
 import socketserver
 from google import genai
 
-# 1. Mini serveur HTTP pour que Render valide le Web Service gratuit
+# 1. Gestionnaire HTTP personnalisé pour servir automatiquement la page HTML
+class InstantAppHandler(http.server.SimpleHTTPRequestHandler):
+    def do_GET(self):
+        # Si l'utilisateur demande la racine (/), on le redirige vers app.html ou index.html
+        if self.path in ['/', '/index.html', '/app.html']:
+            filename = "app.html" if os.path.exists("app.html") else "index.html"
+            if os.path.exists(filename):
+                self.send_response(200)
+                self.send_header('Content-type', 'text/html; charset=utf-8')
+                self.end_headers()
+                with open(filename, 'rb') as f:
+                    self.wfile.write(f.read())
+                return
+        # Sinon, comportement standard pour les autres fichiers (icônes, etc.)
+        return super().do_GET()
+
 def run_http_server():
     port = int(os.environ.get("PORT", 10000))
-    handler = http.server.SimpleHTTPRequestHandler
-    with socketserver.TCPServer(("", port), handler) as httpd:
+    with socketserver.TCPServer(("", port), InstantAppHandler) as httpd:
         print(f"--> Serveur HTTP actif sur le port {port}")
         httpd.serve_forever()
 
@@ -80,31 +94,25 @@ def clean_url(raw_url):
 def update_html_file(headline=None, url=None):
     heure = time.strftime("%H:%M")
     
-    try:
-        # En hébergement, app.html est servi comme index par défaut
-        filename = "index.html" if os.path.exists("index.html") else "app.html"
-        
-        with open(filename, "r", encoding="utf-8") as f:
-            content = f.read()
+    for filename in ["app.html", "index.html"]:
+        if not os.path.exists(filename):
+            continue
+        try:
+            with open(filename, "r", encoding="utf-8") as f:
+                content = f.read()
 
-        if headline:
-            content = re.sub(r'id="headline">.*?</h1>', f'id="headline">{headline}</h1>', content)
-        if url:
-            content = re.sub(r'href="[^"]*"\s+id="source-link"', f'href="{url}" id="source-link"', content)
-            content = re.sub(r'id="source-link"\s+href="[^"]*"', f'id="source-link" href="{url}"', content)
-        
-        content = re.sub(r'id="time-indicator">.*?</span>', f'id="time-indicator">MàJ {heure}</span>', content)
+            if headline:
+                content = re.sub(r'id="headline">.*?</h1>', f'id="headline">{headline}</h1>', content)
+            if url:
+                content = re.sub(r'href="[^"]*"\s+id="source-link"', f'href="{url}" id="source-link"', content)
+                content = re.sub(r'id="source-link"\s+href="[^"]*"', f'id="source-link" href="{url}"', content)
+            
+            content = re.sub(r'id="time-indicator">.*?</span>', f'id="time-indicator">MàJ {heure}</span>', content)
 
-        with open(filename, "w", encoding="utf-8") as f:
-            f.write(content)
-        
-        # Si index.html existe aussi, on le synchronise
-        if filename == "app.html" and os.path.exists("index.html"):
-            with open("index.html", "w", encoding="utf-8") as f:
+            with open(filename, "w", encoding="utf-8") as f:
                 f.write(content)
-                
-    except Exception as e:
-        print(f"--> Erreur lors de la mise à jour : {e}")
+        except Exception as e:
+            print(f"--> Erreur lors de la mise à jour de {filename} : {e}")
 
 def check_and_update():
     global current_headline
@@ -178,7 +186,7 @@ FORMAT STRICT DE RÉPONSE : TITRE_REECRIT|||LINK
         update_html_file()
         print(f"--> Pas de changement d'actu. Horodatage mis à jour à {time.strftime('%H:%M')}.\n")
 
-# Copie de sécurité : on duplique app.html vers index.html pour que le serveur Web le repère d'emblée
+# Assurer la présence de index.html pour la compatibilité
 if os.path.exists("app.html") and not os.path.exists("index.html"):
     with open("app.html", "r", encoding="utf-8") as f_in:
         with open("index.html", "w", encoding="utf-8") as f_out:
