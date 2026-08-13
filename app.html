@@ -76,8 +76,9 @@
 
     footer {
       text-align: center;
-      font-size: 0.8rem;
+      font-size: clamp(0.7rem, 2.8vw, 0.8rem);
       color: #424245;
+      white-space: nowrap;
     }
     footer a {
       color: #424245;
@@ -109,7 +110,7 @@
   </main>
 
   <footer>
-    <span id="footer-text">La seule information qui compte en ce moment.</span> · 
+    <span id="footer-text">La seule info qui compte en ce moment.</span> · 
     <a href="https://www.linkedin.com/in/mehdiramdani/" target="_blank">Mehdi Ramdani</a>
   </footer>
 
@@ -128,7 +129,7 @@
           document.getElementById('btn-fr').classList.remove('active');
         } else {
           document.getElementById('source-link').textContent = "Voir la source ↗";
-          document.getElementById('footer-text').textContent = "La seule information qui compte en ce moment.";
+          document.getElementById('footer-text').textContent = "La seule info qui compte en ce moment.";
           document.getElementById('btn-fr').classList.add('active');
           document.getElementById('btn-us').classList.remove('active');
         }
