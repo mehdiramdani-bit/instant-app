@@ -14,7 +14,7 @@ os.environ['TZ'] = 'Europe/Paris'
 if hasattr(time, 'tzset'):
     time.tzset()
 
-print("--> [START] Moteur Instant démarré (Rédacteur Gemini naturel - Sans tronquage)", flush=True)
+print("--> [START] Moteur Instant démarré (Consigne d'information dense 70-80 signes)", flush=True)
 
 current_news = {
     "FR": {"headline": "Analyse Gemini en cours...", "url": "https://news.google.fr"},
@@ -92,13 +92,17 @@ Voici la sélection des titres issus de la UNE des grands journaux nationaux fra
 Information actuellement affichée : "{current_h}"
 
 RÔLE : Rédacteur en Chef d'un média d'urgence ("L'Information Évidence du Moment").
-MISSION : Réécrire l'actualité majeure sous la forme d'un titre naturel, complet et percutant.
+MISSION : Réécrire l'actualité majeure sous la forme d'une alerte d'information complète et précise.
 
-CONSIGNES ÉDITORIALES :
-1. LENGTH TARGET : Rédige une phrase complète d'environ 70 à 80 signes. La phrase doit être grammaticalement parfaite et se suffire à elle-même.
-2. STYLE : Sujet + Verbe au présent de l'indicatif + Fait principal.
-3. EXCLUSIONS STRICTES : Pas de faits divers régionaux, météo, culture, sports.
+CONSIGNE STRICTE DE DENSITÉ ET DE LONGUEUR :
+1. TON TITRE DOIT COMPORTER ENTRE 70 ET 85 CARACTÈRES (espaces compris).
+2. Ne fais PAS de phrase trop courte (ex: 40-50 caractères est INTERDIT).
+3. Inclus impérativement : le sujet principal + l'action précise au présent + un détail clé de contexte (chiffre, lieu, échéance ou cause).
 4. CONSENSUS : Événement majeur confirmé par au moins 2 sources.
+
+EXEMPLE D'OBJECTIF :
+- Trop court (INTERDIT) : "Le gouvernement prépare une baisse du déficit" (46 signes)
+- Parfait (AUTORISÉ) : "Le gouvernement annonce un plan de 10 milliards pour réduire le déficit" (75 signes)
 
 FORMAT DE RÉPONSE EXIGÉ :
 TITRE_REECRIT|||LINK
@@ -111,13 +115,17 @@ Here is the selection of top headlines from major domestic US news outlets:
 Current headline displayed: "{current_h}"
 
 ROLE: Editor-in-Chief of a high-urgency US news app ("The Essential News Right Now").
-MISSION: Select and rewrite the SINGLE most critical national story into a crisp, complete headline.
+MISSION: Select and rewrite the SINGLE most critical national story into a detailed, informative headline.
 
-EDITORIAL RULES:
-1. LENGTH TARGET: Write a complete, well-crafted sentence around 70 to 80 characters.
-2. STYLE: Subject + Active present tense verb + Core fact.
-3. STRICT EXCLUSIONS: No local crime, sports, weather, entertainment, or opinion pieces.
+STRICT LENGTH AND DENSITY RULES:
+1. YOUR HEADLINE MUST BE BETWEEN 70 AND 85 CHARACTERS long (including spaces).
+2. DO NOT write short phrases under 65 characters.
+3. Must include: Core subject + Present tense verb + Specific key detail (data, location, or outcome).
 4. CONSENSUS: Must be covered by at least 2 outlets.
+
+EXAMPLE:
+- Too short (FORBIDDEN): "The Senate passes a new economic bill" (38 chars)
+- Perfect (ALLOWED): "The Senate approves a $50B economic stimulus plan after bipartisan vote" (74 chars)
 
 REQUIRED RESPONSE FORMAT:
 REWRITTEN_HEADLINE|||LINK
@@ -186,7 +194,6 @@ def check_and_update():
         res_fr = evaluate_news("FR", news_fr)
         if res_fr and "|||" in res_fr:
             h, u = res_fr.split("|||", 1)
-            # On prend directement le titre de Gemini sans AUCUNE coupe Python
             current_news["FR"] = {"headline": h.strip(), "url": clean_url(u)}
     except Exception as e:
         print(f"⚠️ Erreur FR : {e}", flush=True)
@@ -197,7 +204,6 @@ def check_and_update():
         res_us = evaluate_news("US", news_us)
         if res_us and "|||" in res_us:
             h, u = res_us.split("|||", 1)
-            # On prend directement le titre de Gemini sans AUCUNE coupe Python
             current_news["US"] = {"headline": h.strip(), "url": clean_url(u)}
     except Exception as e:
         print(f"⚠️ Erreur US : {e}", flush=True)
