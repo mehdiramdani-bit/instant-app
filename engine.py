@@ -14,7 +14,7 @@ os.environ['TZ'] = 'Europe/Paris'
 if hasattr(time, 'tzset'):
     time.tzset()
 
-print("--> [START] Moteur Instant démarré", flush=True)
+print("--> [START] Moteur Instant démarré (Sources US 100% natives)", flush=True)
 
 current_news = {
     "FR": {"headline": "Analyse Gemini en cours...", "url": "https://news.google.fr"},
@@ -28,10 +28,12 @@ SOURCES_FR = [
     {"name": "BFM TV", "url": "https://www.bfmtv.com/rss/info/flux-rss/flux-toutes-les-actualites/", "domain": "https://www.bfmtv.com"}
 ]
 
+# Remplacement de la BBC par des pure-players / réseaux US natifs
 SOURCES_US = [
     {"name": "NY Times", "url": "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml", "domain": "https://www.nytimes.com"},
-    {"name": "BBC US", "url": "http://feeds.bbci.co.uk/news/world/us_and_canada/rss.xml", "domain": "https://www.bbc.com"},
-    {"name": "AP News", "url": "https://feedx.net/rss/ap.xml", "domain": "https://apnews.com"}
+    {"name": "AP News", "url": "https://feedx.net/rss/ap.xml", "domain": "https://apnews.com"},
+    {"name": "NPR News", "url": "https://feeds.npr.org/1001/rss.xml", "domain": "https://www.npr.org"},
+    {"name": "CBS News", "url": "https://www.cbsnews.com/rss/ftag/main/", "domain": "https://www.cbsnews.com"}
 ]
 
 def fetch_rss_items(sources):
@@ -103,27 +105,25 @@ TITRE_REECRIT|||LINK
 """
     else:
         prompt = f"""
-Here is the selection of top headlines from major US news outlets:
+Here is the selection of top headlines from major domestic US news outlets:
 {news_list}
 
 Current headline displayed: "{current_h}"
 
-ROLE: Editor-in-Chief of a high-urgency news app ("The Essential News Right Now").
-Mission: Pick the SINGLE most critical news story dominating US front pages today.
+ROLE: Editor-in-Chief of a high-urgency US news app ("The Essential News Right Now").
+Mission: Pick the SINGLE most critical national or global news story dominating major American front pages today.
 
 CRITERIA:
 1. PRIORITY TO [TOP_HEADLINE].
 2. MULTI-MEDIA CONSENSUS.
-3. STRICT EXCLUSIONS: local crime, state politics, sports.
+3. STRICT EXCLUSIONS: local crime, state politics, sports, celebrity news.
 
 REQUIRED RESPONSE FORMAT:
 REWRITTEN_HEADLINE|||LINK
 """
 
-    # Liste des modèles prioritaires + fallback automatique dynamique
     preferred_models = ["gemini-3.6-flash", "gemini-3.5-flash"]
     
-    # Récupération dynamique des modèles disponibles si besoin
     available_models = []
     try:
         for m in client.models.list():
@@ -133,7 +133,6 @@ REWRITTEN_HEADLINE|||LINK
     except Exception:
         pass
 
-    # Fusion des modèles prioritaires avec les modèles détectés sur la clé API
     models_to_try = list(dict.fromkeys(preferred_models + available_models))
 
     for m in models_to_try:
@@ -144,7 +143,7 @@ REWRITTEN_HEADLINE|||LINK
                 return res.text.strip()
         except Exception as e:
             err_msg = str(e)
-            print(f"⚠️ [GEMINI ÉCHEC] Modèle {m} ({lang}) : {err_msg[:120]}...", flush=True)
+            print(f"⚠️ [GEMINI ÉCHEC] Modèle {m} ({lang}) : {err_msg[:100]}...", flush=True)
             continue
             
     print(f"❌ [GEMINI ÉCHEC] Aucun modèle n'a pu répondre pour {lang}.", flush=True)
