@@ -14,25 +14,24 @@ os.environ['TZ'] = 'Europe/Paris'
 if hasattr(time, 'tzset'):
     time.tzset()
 
-print("--> [START] Moteur Instant démarré", flush=True)
+print("--> [START] Moteur Instant démarré (gemini-3.6-flash / 3.5-flash prioritaires)", flush=True)
 
 current_news = {
-    "FR": {"headline": "L'actualité majeure est en cours d'analyse...", "url": "https://news.google.fr"},
-    "US": {"headline": "Major news is currently being analyzed...", "url": "https://news.google.com"}
+    "FR": {"headline": "Analyse Gemini en cours...", "url": "https://news.google.fr"},
+    "US": {"headline": "Gemini analysis in progress...", "url": "https://news.google.com"}
 }
 
 SOURCES_FR = [
     {"name": "Le Monde", "url": "https://www.lemonde.fr/rss/une.xml", "domain": "https://www.lemonde.fr"},
     {"name": "Le Figaro", "url": "https://www.lefigaro.fr/rss/figaro_une.xml", "domain": "https://www.lefigaro.fr"},
     {"name": "France Info", "url": "https://www.francetvinfo.fr/titres.rss", "domain": "https://www.francetvinfo.fr"},
-    {"name": "BFM TV", "url": "https://www.bfmtv.com/rss/info/flux-rss/flux-toutes-les-actualites/", "domain": "https://www.bfmtv.com"},
-    {"name": "Les Echos", "url": "https://www.lesechos.fr/rss/rss_une.xml", "domain": "https://www.lesechos.fr"}
+    {"name": "BFM TV", "url": "https://www.bfmtv.com/rss/info/flux-rss/flux-toutes-les-actualites/", "domain": "https://www.bfmtv.com"}
 ]
 
 SOURCES_US = [
     {"name": "NY Times", "url": "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml", "domain": "https://www.nytimes.com"},
     {"name": "BBC US", "url": "http://feeds.bbci.co.uk/news/world/us_and_canada/rss.xml", "domain": "https://www.bbc.com"},
-    {"name": "WSJ", "url": "https://feeds.a.dj.com/rss/WSJNewsPlus.xml", "domain": "https://www.wsj.com"}
+    {"name": "AP News", "url": "https://feedx.net/rss/ap.xml", "domain": "https://apnews.com"}
 ]
 
 def fetch_rss_items(sources):
@@ -54,7 +53,7 @@ def fetch_rss_items(sources):
                 link = entry.link.strip()
                 if link.startswith("/"):
                     link = source["domain"] + link
-                
+
                 if title not in seen_titles:
                     seen_titles.add(title)
                     badge = "[TOP_HEADLINE]" if index < 2 else "[SECONDARY]"
@@ -72,14 +71,14 @@ def clean_url(raw_url):
 def evaluate_news(lang, news_list):
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
-        print("⚠️ GEMINI_API_KEY absente", flush=True)
+        print("❌ [GEMINI STRICT] Clé API introuvable.", flush=True)
         return None
 
     try:
         from google import genai
         client = genai.Client(api_key=api_key)
     except Exception as e:
-        print(f"⚠️ Import SDK Gemini échec : {e}", flush=True)
+        print(f"❌ [GEMINI STRICT] Échec import SDK: {e}", flush=True)
         return None
 
     current_h = current_news[lang]["headline"]
@@ -121,16 +120,25 @@ REQUIRED RESPONSE FORMAT:
 REWRITTEN_HEADLINE|||LINK
 """
 
-    models_to_try = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-2.5-flash"]
+    # 3.6 et 3.5 en priorité 1, suivis de 2.5 et 1.5 en secours
+    models_to_try = [
+        "gemini-3.6-flash",
+        "gemini-3.5-flash",
+        "gemini-2.5-flash",
+        "gemini-1.5-flash"
+    ]
+    
     for m in models_to_try:
         try:
             res = client.models.generate_content(model=m, contents=prompt)
             if res and res.text and "|||" in res.text:
-                print(f"--> [GEMINI SUCCESS] {m} ({lang})", flush=True)
+                print(f"✅ [GEMINI VALIDÉ] Modèle {m} a généré la synthèse ({lang})", flush=True)
                 return res.text.strip()
         except Exception as e:
-            print(f"⚠️ Erreur modèle {m} ({lang}) : {e}", flush=True)
+            print(f"⚠️ [GEMINI ÉCHEC] Modèle {m} ({lang}) : {e}", flush=True)
             continue
+            
+    print(f"❌ [GEMINI ÉCHEC] Aucun modèle n'a pu répondre pour {lang}.", flush=True)
     return None
 
 def update_html_files():
@@ -149,7 +157,6 @@ def update_html_files():
             with open(filename, "r", encoding="utf-8") as f:
                 content = f.read()
 
-            # Pattern de remplacement sécurisé
             pattern = r'(<script id="news-data" type="application/json">).*?(</script>)'
             replacement = rf'\1\n  {json_payload}\n  \2'
             
@@ -162,8 +169,9 @@ def update_html_files():
             print(f"⚠️ [HTML ERR] {filename} : {e}", flush=True)
 
 def check_and_update():
-    print(f"[{time.strftime('%H:%M:%S')}] --- EVALUATION EN COURS ---", flush=True)
+    print(f"[{time.strftime('%H:%M:%S')}] --- ÉVALUATION STRICTE GEMINI ---", flush=True)
     
+    # FR
     try:
         news_fr = fetch_rss_items(SOURCES_FR)
         res_fr = evaluate_news("FR", news_fr)
@@ -173,6 +181,7 @@ def check_and_update():
     except Exception as e:
         print(f"⚠️ Erreur FR : {e}", flush=True)
 
+    # US
     try:
         news_us = fetch_rss_items(SOURCES_US)
         res_us = evaluate_news("US", news_us)
@@ -183,7 +192,7 @@ def check_and_update():
         print(f"⚠️ Erreur US : {e}", flush=True)
 
     update_html_files()
-    print("--- EVALUATION FINIE ---\n", flush=True)
+    print("--- FIN ÉVALUATION GEMINI ---\n", flush=True)
 
 class InstantAppHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
@@ -206,10 +215,7 @@ def run_http_server():
         print(f"--> [SERVER] HTTP actif sur le port {port}", flush=True)
         httpd.serve_forever()
 
-# Lancement du serveur Web dans un thread
 threading.Thread(target=run_http_server, daemon=True).start()
-
-# Lancement de l'évaluation en tâche de fond
 threading.Thread(target=check_and_update, daemon=True).start()
 
 schedule.every().hour.at(":00").do(lambda: threading.Thread(target=check_and_update, daemon=True).start())
