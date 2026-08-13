@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="refresh" content="30">
   <title>Instant</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -88,6 +89,10 @@
       color: #86868b;
     }
   </style>
+
+  <script id="news-data" type="application/json">
+  {"time": "--:--", "FR": {"headline": "Chargement...", "url": "#"}, "US": {"headline": "Loading...", "url": "#"}}
+  </script>
 </head>
 <body>
 
@@ -111,35 +116,31 @@
 
   <script>
     let currentLang = localStorage.getItem('instant_lang') || 'FR';
-    let newsCache = null;
-
-    async function fetchNews() {
-      try {
-        const res = await fetch('/api/news');
-        newsCache = await res.json();
-        renderNews();
-      } catch (e) {
-        console.error("Erreur API :", e);
-      }
-    }
 
     function renderNews() {
-      if (currentLang === 'US') {
-        document.getElementById('source-link').textContent = "View source ↗";
-        document.getElementById('footer-text').textContent = "The single story that matters right now.";
-        document.getElementById('btn-us').classList.add('active');
-        document.getElementById('btn-fr').classList.remove('active');
-      } else {
-        document.getElementById('source-link').textContent = "Voir la source ↗";
-        document.getElementById('footer-text').textContent = "La seule info qui compte en ce moment.";
-        document.getElementById('btn-fr').classList.add('active');
-        document.getElementById('btn-us').classList.remove('active');
-      }
+      try {
+        const rawData = document.getElementById('news-data').textContent;
+        const data = JSON.parse(rawData);
 
-      if (newsCache && newsCache[currentLang]) {
-        const item = newsCache[currentLang];
-        document.getElementById('headline').textContent = item.headline;
-        document.getElementById('source-link').href = item.url;
+        if (currentLang === 'US') {
+          document.getElementById('source-link').textContent = "View source ↗";
+          document.getElementById('footer-text').textContent = "The single story that matters right now.";
+          document.getElementById('btn-us').classList.add('active');
+          document.getElementById('btn-fr').classList.remove('active');
+        } else {
+          document.getElementById('source-link').textContent = "Voir la source ↗";
+          document.getElementById('footer-text').textContent = "La seule info qui compte en ce moment.";
+          document.getElementById('btn-fr').classList.add('active');
+          document.getElementById('btn-us').classList.remove('active');
+        }
+
+        const item = data[currentLang] || data['FR'];
+        if (item && item.headline && item.headline !== "Chargement..." && item.headline !== "Loading...") {
+          document.getElementById('headline').textContent = item.headline;
+          document.getElementById('source-link').href = item.url;
+        }
+      } catch (e) {
+        console.error("Erreur lors de l'affichage :", e);
       }
     }
 
@@ -149,11 +150,7 @@
       renderNews();
     }
 
-    window.onload = () => {
-      renderNews();
-      fetchNews();
-      setInterval(fetchNews, 30000); // Rafraîchissement automatique toutes les 30 sec
-    };
+    window.onload = renderNews;
   </script>
 
 </body>
