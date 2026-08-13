@@ -14,11 +14,11 @@ os.environ['TZ'] = 'Europe/Paris'
 if hasattr(time, 'tzset'):
     time.tzset()
 
-print("--> [START] Démarrage du script engine.py")
+print("--> [START] Moteur Instant démarré", flush=True)
 
 current_news = {
-    "FR": {"headline": "", "url": ""},
-    "US": {"headline": "", "url": ""}
+    "FR": {"headline": "L'actualité majeure est en cours d'analyse...", "url": "https://news.google.fr"},
+    "US": {"headline": "Major news is currently being analyzed...", "url": "https://news.google.com"}
 }
 
 SOURCES_FR = [
@@ -34,19 +34,6 @@ SOURCES_US = [
     {"name": "BBC US", "url": "http://feeds.bbci.co.uk/news/world/us_and_canada/rss.xml", "domain": "https://www.bbc.com"},
     {"name": "WSJ", "url": "https://feeds.a.dj.com/rss/WSJNewsPlus.xml", "domain": "https://www.wsj.com"}
 ]
-
-def get_gemini_client():
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
-        print("⚠️ [GEMINI] GEMINI_API_KEY introuvable dans l'environnement !")
-        return None
-    try:
-        from google import genai
-        client = genai.Client(api_key=api_key)
-        return client
-    except Exception as e:
-        print(f"⚠️ [GEMINI] Erreur lors du chargement du SDK : {e}")
-        return None
 
 def fetch_rss_items(sources):
     context = ssl._create_unverified_context()
@@ -73,7 +60,7 @@ def fetch_rss_items(sources):
                     badge = "[TOP_HEADLINE]" if index < 2 else "[SECONDARY]"
                     items.append(f"{badge} [{source['name']}] TITRE: {title} | LINK: {link}")
         except Exception as e:
-            print(f"⚠️ Erreur RSS {source['name']} : {e}")
+            print(f"⚠️ RSS {source['name']} : {e}", flush=True)
             continue
                     
     return "\n".join(items)
@@ -82,9 +69,17 @@ def clean_url(raw_url):
     match = re.search(r'https?://[^\s"\'<>]+', raw_url)
     return match.group(0) if match else raw_url.strip()
 
-def evaluate_news(client, lang, news_list):
-    if not client or not news_list:
-        print(f"⚠️ [EVAL SKIP] {lang} ignoré (Client API inactif ou flux vide).")
+def evaluate_news(lang, news_list):
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        print("⚠️ GEMINI_API_KEY absente", flush=True)
+        return None
+
+    try:
+        from google import genai
+        client = genai.Client(api_key=api_key)
+    except Exception as e:
+        print(f"⚠️ Import SDK Gemini échec : {e}", flush=True)
         return None
 
     current_h = current_news[lang]["headline"]
@@ -104,7 +99,7 @@ CRITÈRES :
 2. CONSENSUS MULTI-MÉDIAS (sujet apparaissant dans au moins 2 sources).
 3. EXCLUSIONS STRICTES : faits divers régionaux, météo, culture/sports.
 
-FORMAT DE RÉPONSE :
+FORMAT DE RÉPONSE EXIGÉ :
 TITRE_REECRIT|||LINK
 """
     else:
@@ -122,7 +117,7 @@ CRITERIA:
 2. MULTI-MEDIA CONSENSUS.
 3. STRICT EXCLUSIONS: local crime, state politics, sports.
 
-RESPONSE FORMAT:
+REQUIRED RESPONSE FORMAT:
 REWRITTEN_HEADLINE|||LINK
 """
 
@@ -131,10 +126,10 @@ REWRITTEN_HEADLINE|||LINK
         try:
             res = client.models.generate_content(model=m, contents=prompt)
             if res and res.text and "|||" in res.text:
-                print(f"--> [GEMINI SUCCESS] {m} ({lang})")
+                print(f"--> [GEMINI SUCCESS] {m} ({lang})", flush=True)
                 return res.text.strip()
         except Exception as e:
-            print(f"⚠️ [GEMINI ERR] Modèle {m} ({lang}) : {e}")
+            print(f"⚠️ Erreur modèle {m} ({lang}) : {e}", flush=True)
             continue
     return None
 
@@ -154,45 +149,41 @@ def update_html_files():
             with open(filename, "r", encoding="utf-8") as f:
                 content = f.read()
 
-            new_content = re.sub(
-                r'id="news-data"[^>]*>.*.*?/script>',
-                f'id="news-data" type="application/json">{json_payload}</script>',
-                content,
-                flags=re.DOTALL
-            )
+            # Pattern de remplacement sécurisé
+            pattern = r'(<script id="news-data" type="application/json">).*?(</script>)'
+            replacement = rf'\1\n  {json_payload}\n  \2'
+            
+            new_content = re.sub(pattern, replacement, content, flags=re.DOTALL)
             
             with open(filename, "w", encoding="utf-8") as f:
                 f.write(new_content)
-            print(f"--> [HTML OK] {filename} mis à jour à {time_str}.")
+            print(f"--> [HTML OK] {filename} mis à jour à {time_str}", flush=True)
         except Exception as e:
-            print(f"⚠️ [HTML ERR] {filename} : {e}")
+            print(f"⚠️ [HTML ERR] {filename} : {e}", flush=True)
 
 def check_and_update():
-    print(f"\n[{time.strftime('%H:%M:%S')}] --- DEBUT EVALUATION GEMINI ---")
-    client = get_gemini_client()
+    print(f"[{time.strftime('%H:%M:%S')}] --- EVALUATION EN COURS ---", flush=True)
     
-    # FR
     try:
         news_fr = fetch_rss_items(SOURCES_FR)
-        res_fr = evaluate_news(client, "FR", news_fr)
+        res_fr = evaluate_news("FR", news_fr)
         if res_fr and "|||" in res_fr:
             h, u = res_fr.split("|||", 1)
             current_news["FR"] = {"headline": h.strip(), "url": clean_url(u)}
     except Exception as e:
-        print(f"⚠️ Erreur FR : {e}")
+        print(f"⚠️ Erreur FR : {e}", flush=True)
 
-    # US
     try:
         news_us = fetch_rss_items(SOURCES_US)
-        res_us = evaluate_news(client, "US", news_us)
+        res_us = evaluate_news("US", news_us)
         if res_us and "|||" in res_us:
             h, u = res_us.split("|||", 1)
             current_news["US"] = {"headline": h.strip(), "url": clean_url(u)}
     except Exception as e:
-        print(f"⚠️ Erreur US : {e}")
+        print(f"⚠️ Erreur US : {e}", flush=True)
 
     update_html_files()
-    print("--- FIN EVALUATION GEMINI ---\n")
+    print("--- EVALUATION FINIE ---\n", flush=True)
 
 class InstantAppHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
@@ -212,17 +203,17 @@ def run_http_server():
     port = int(os.environ.get("PORT", 10000))
     socketserver.TCPServer.allow_reuse_address = True
     with socketserver.TCPServer(("", port), InstantAppHandler) as httpd:
-        print(f"--> [SERVER] Serveur Web à l'écoute sur le port {port}")
+        print(f"--> [SERVER] HTTP actif sur le port {port}", flush=True)
         httpd.serve_forever()
 
-# Démarrer le serveur HTTP dans son thread
+# Lancement du serveur Web dans un thread
 threading.Thread(target=run_http_server, daemon=True).start()
 
-# Lancer immédiatement l'évaluation au démarrage
-check_and_update()
+# Lancement de l'évaluation en tâche de fond
+threading.Thread(target=check_and_update, daemon=True).start()
 
-schedule.every().hour.at(":00").do(check_and_update)
-schedule.every().hour.at(":30").do(check_and_update)
+schedule.every().hour.at(":00").do(lambda: threading.Thread(target=check_and_update, daemon=True).start())
+schedule.every().hour.at(":30").do(lambda: threading.Thread(target=check_and_update, daemon=True).start())
 
 while True:
     schedule.run_pending()

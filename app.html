@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="refresh" content="30">
   <title>Instant</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -91,7 +90,7 @@
   </style>
 
   <script id="news-data" type="application/json">
-  {"time": "--:--", "FR": {"headline": "Chargement...", "url": "#"}, "US": {"headline": "Loading...", "url": "#"}}
+  {"time": "12:00", "FR": {"headline": "L'actualité majeure est en cours d'analyse...", "url": "https://news.google.fr"}, "US": {"headline": "Major news is currently being analyzed...", "url": "https://news.google.com"}}
   </script>
 </head>
 <body>
@@ -105,8 +104,8 @@
   </header>
 
   <main>
-    <h1 class="headline" id="headline">Chargement de l'actualité...</h1>
-    <a href="https://news.google.com" id="source-link" class="cta" target="_blank">Voir la source ↗</a>
+    <h1 class="headline" id="headline">L'actualité majeure est en cours d'analyse...</h1>
+    <a href="https://news.google.fr" id="source-link" class="cta" target="_blank">Voir la source ↗</a>
   </main>
 
   <footer>
@@ -135,12 +134,12 @@
         }
 
         const item = data[currentLang] || data['FR'];
-        if (item && item.headline && item.headline !== "Chargement..." && item.headline !== "Loading...") {
+        if (item && item.headline) {
           document.getElementById('headline').textContent = item.headline;
           document.getElementById('source-link').href = item.url;
         }
       } catch (e) {
-        console.error("Erreur lors de l'affichage :", e);
+        console.error("Erreur d'affichage :", e);
       }
     }
 
