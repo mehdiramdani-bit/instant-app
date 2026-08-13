@@ -1,9 +1,9 @@
+cat << 'EOF' > ~/Desktop/instant-app/app.html
 <!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- Recharge la page automatiquement toutes les 30 secondes -->
   <meta http-equiv="refresh" content="30">
   <title>Instant</title>
   <style>
@@ -57,6 +57,10 @@
       font-size: 0.8rem;
       color: #424245;
     }
+    footer a {
+      color: #86868b;
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
@@ -68,12 +72,17 @@
 
   <main>
     <h1 class="headline" id="headline">Initialisation de l'application...</h1>
-    <a href="https://news.google.com" id="source-link" class="cta" target="_blank">Lire la source ↗</a>
+    <a href="https://news.google.com" id="source-link" class="cta" target="_blank">Voir la source ↗</a>
   </main>
 
   <footer>
-    Une seule info. Moteur alimenté par Gemini.
+    Une seule info à connaître, toutes les 30 minutes.<br>
+    <a href="https://www.linkedin.com/in/mehdiramdani/" target="_blank">Mehdi Ramdani</a>
   </footer>
 
 </body>
 </html>
+EOF
+
+cp ~/Desktop/instant-app/app.html ~/Desktop/instant-app/index.html
+cd ~/Desktop/instant-app && git add . && git commit -m "Add LinkedIn footer" && git push
