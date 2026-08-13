@@ -39,14 +39,16 @@ def run_http_server():
 threading.Thread(target=run_http_server, daemon=True).start()
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-if not GEMINI_API_KEY:
-    print("⚠️ ATTENTION : La variable d'environnement GEMINI_API_KEY est introuvable !")
-
-client = genai.Client(api_key=GEMINI_API_KEY)
+client = None
+if GEMINI_API_KEY:
+    try:
+        client = genai.Client(api_key=GEMINI_API_KEY)
+    except Exception as e:
+        print(f"⚠️ Erreur initialisation Gemini : {e}")
 
 current_news = {
-    "FR": {"headline": "", "url": ""},
-    "US": {"headline": "", "url": ""}
+    "FR": {"headline": "L'actualité majeure est en cours d'actualisation...", "url": "https://news.google.fr"},
+    "US": {"headline": "Top news story is updating...", "url": "https://news.google.com"}
 }
 
 SOURCES_FR = [
@@ -102,6 +104,9 @@ def clean_url(raw_url):
     return raw_url.strip()
 
 def evaluate_news(lang, news_list):
+    if not client or not news_list:
+        return "NO_CHANGE"
+
     current_h = current_news[lang]["headline"]
     
     if lang == "FR":
@@ -111,7 +116,7 @@ Voici la sélection des titres issus de la UNE des grands journaux nationaux fra
 
 Information actuelle : "{current_h}"
 
-RÔLE : Rédacteur en Chef d'un média d'urgence ("L'Information Évidente du Moment").
+RÔLE : Rédacteur en Chef d'un média d'urgence ("L'Information Évidence du Moment").
 Mission : Choisir L'UNIQUE sujet majeur qui domine l'actualité en France aujourd'hui.
 
 CRITÈRES :
@@ -144,7 +149,7 @@ CRITERIA:
 4. STRICT EXCLUSIONS: local crime/accidents, state-level politics, sports, entertainment, opinion pieces.
 
 EVALUATION:
-- If current headline ALREADY covers the dominant story AND current headline is NOT empty, reply "NO_CHANGE".
+- If current headline ALREADY covers the dominant story, reply "NO_CHANGE".
 - Otherwise rewrite the new story: Max 75 characters, active voice, present tense, crisp journalistic style.
 
 RESPONSE FORMAT:
@@ -157,7 +162,8 @@ REWRITTEN_HEADLINE|||LINK
             res = client.models.generate_content(model=m, contents=prompt)
             if res and res.text:
                 return res.text.strip()
-        except Exception:
+        except Exception as e:
+            print(f"⚠️ Erreur modèle {m} ({lang}) : {e}")
             continue
     return "NO_CHANGE"
 
@@ -192,17 +198,23 @@ def update_html_files():
 def check_and_update():
     print(f"[{time.strftime('%H:%M:%S')}] --- ÉVALUATION FR/US ---")
     
-    news_fr = fetch_rss_items(SOURCES_FR)
-    res_fr = evaluate_news("FR", news_fr)
-    if res_fr != "NO_CHANGE" and "|||" in res_fr:
-        h, u = res_fr.split("|||", 1)
-        current_news["FR"] = {"headline": h.strip(), "url": clean_url(u)}
+    try:
+        news_fr = fetch_rss_items(SOURCES_FR)
+        res_fr = evaluate_news("FR", news_fr)
+        if res_fr != "NO_CHANGE" and "|||" in res_fr:
+            h, u = res_fr.split("|||", 1)
+            current_news["FR"] = {"headline": h.strip(), "url": clean_url(u)}
+    except Exception as e:
+        print(f"⚠️ Erreur mise à jour FR : {e}")
 
-    news_us = fetch_rss_items(SOURCES_US)
-    res_us = evaluate_news("US", news_us)
-    if res_us != "NO_CHANGE" and "|||" in res_us:
-        h, u = res_us.split("|||", 1)
-        current_news["US"] = {"headline": h.strip(), "url": clean_url(u)}
+    try:
+        news_us = fetch_rss_items(SOURCES_US)
+        res_us = evaluate_news("US", news_us)
+        if res_us != "NO_CHANGE" and "|||" in res_us:
+            h, u = res_us.split("|||", 1)
+            current_news["US"] = {"headline": h.strip(), "url": clean_url(u)}
+    except Exception as e:
+        print(f"⚠️ Erreur mise à jour US : {e}")
 
     update_html_files()
     print("--> Mise à jour FR/US terminée.\n")
@@ -212,7 +224,8 @@ if os.path.exists("app.html") and not os.path.exists("index.html"):
         with open("index.html", "w", encoding="utf-8") as f_out:
             f_out.write(f_in.read())
 
-check_and_update()
+# Exécuter la première mise à jour dans un thread séparé pour ne pas bloquer
+threading.Thread(target=check_and_update, daemon=True).start()
 
 schedule.every().hour.at(":00").do(check_and_update)
 schedule.every().hour.at(":30").do(check_and_update)
