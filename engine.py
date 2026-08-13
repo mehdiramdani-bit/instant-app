@@ -16,39 +16,17 @@ os.environ['TZ'] = 'Europe/Paris'
 if hasattr(time, 'tzset'):
     time.tzset()
 
-class InstantAppHandler(http.server.SimpleHTTPRequestHandler):
-    def do_GET(self):
-        if self.path in ['/', '/index.html', '/app.html']:
-            filename = "app.html" if os.path.exists("app.html") else "index.html"
-            if os.path.exists(filename):
-                self.send_response(200)
-                self.send_header('Content-type', 'text/html; charset=utf-8')
-                self.end_headers()
-                with open(filename, 'rb') as f:
-                    self.wfile.write(f.read())
-                return
-        return super().do_GET()
-
-def run_http_server():
-    port = int(os.environ.get("PORT", 10000))
-    socketserver.TCPServer.allow_reuse_address = True
-    with socketserver.TCPServer(("", port), InstantAppHandler) as httpd:
-        print(f"--> Serveur HTTP actif sur le port {port}")
-        httpd.serve_forever()
-
-threading.Thread(target=run_http_server, daemon=True).start()
-
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 client = None
 if GEMINI_API_KEY:
     try:
         client = genai.Client(api_key=GEMINI_API_KEY)
     except Exception as e:
-        print(f"⚠️ Erreur initialisation Gemini : {e}")
+        print(f"⚠️ Erreur Gemini : {e}")
 
 current_news = {
-    "FR": {"headline": "L'actualité majeure est en cours d'actualisation...", "url": "https://news.google.fr"},
-    "US": {"headline": "Top news story is updating...", "url": "https://news.google.com"}
+    "FR": {"headline": "L'actualité majeure est en cours d'analyse...", "url": "https://news.google.fr"},
+    "US": {"headline": "Analyzing top breaking news...", "url": "https://news.google.com"}
 }
 
 SOURCES_FR = [
@@ -116,7 +94,7 @@ Voici la sélection des titres issus de la UNE des grands journaux nationaux fra
 
 Information actuelle : "{current_h}"
 
-RÔLE : Rédacteur en Chef d'un média d'urgence ("L'Information Évidence du Moment").
+RÔLE : Rédacteur en Chef d'un média d'urgence ("L'Information Évidente du Moment").
 Mission : Choisir L'UNIQUE sujet majeur qui domine l'actualité en France aujourd'hui.
 
 CRITÈRES :
@@ -162,38 +140,9 @@ REWRITTEN_HEADLINE|||LINK
             res = client.models.generate_content(model=m, contents=prompt)
             if res and res.text:
                 return res.text.strip()
-        except Exception as e:
-            print(f"⚠️ Erreur modèle {m} ({lang}) : {e}")
+        except Exception:
             continue
     return "NO_CHANGE"
-
-def update_html_files():
-    time_str = time.strftime("%H:%M")
-    
-    json_payload = json.dumps({
-        "time": time_str,
-        "FR": current_news["FR"],
-        "US": current_news["US"]
-    }, ensure_ascii=False)
-
-    for filename in ["app.html", "index.html"]:
-        if not os.path.exists(filename):
-            continue
-        try:
-            with open(filename, "r", encoding="utf-8") as f:
-                content = f.read()
-
-            new_content = re.sub(
-                r'id="news-data"[^>]*>.*?</script>',
-                f'id="news-data" type="application/json">{json_payload}</script>',
-                content,
-                flags=re.DOTALL
-            )
-            
-            with open(filename, "w", encoding="utf-8") as f:
-                f.write(new_content)
-        except Exception as e:
-            print(f"--> Erreur mise à jour HTML ({filename}) : {e}")
 
 def check_and_update():
     print(f"[{time.strftime('%H:%M:%S')}] --- ÉVALUATION FR/US ---")
@@ -205,7 +154,7 @@ def check_and_update():
             h, u = res_fr.split("|||", 1)
             current_news["FR"] = {"headline": h.strip(), "url": clean_url(u)}
     except Exception as e:
-        print(f"⚠️ Erreur mise à jour FR : {e}")
+        print(f"⚠️ Erreur FR : {e}")
 
     try:
         news_us = fetch_rss_items(SOURCES_US)
@@ -214,17 +163,42 @@ def check_and_update():
             h, u = res_us.split("|||", 1)
             current_news["US"] = {"headline": h.strip(), "url": clean_url(u)}
     except Exception as e:
-        print(f"⚠️ Erreur mise à jour US : {e}")
+        print(f"⚠️ Erreur US : {e}")
 
-    update_html_files()
-    print("--> Mise à jour FR/US terminée.\n")
+    print("--> Mise à jour FR/US terminée en mémoire.\n")
 
-if os.path.exists("app.html") and not os.path.exists("index.html"):
-    with open("app.html", "r", encoding="utf-8") as f_in:
-        with open("index.html", "w", encoding="utf-8") as f_out:
-            f_out.write(f_in.read())
+class InstantAppHandler(http.server.SimpleHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/api/news':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json; charset=utf-8')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            payload = json.dumps(current_news, ensure_ascii=False)
+            self.wfile.write(payload.encode('utf-8'))
+            return
+            
+        if self.path in ['/', '/index.html', '/app.html']:
+            filename = "app.html" if os.path.exists("app.html") else "index.html"
+            if os.path.exists(filename):
+                self.send_response(200)
+                self.send_header('Content-type', 'text/html; charset=utf-8')
+                self.end_headers()
+                with open(filename, 'rb') as f:
+                    self.wfile.write(f.read())
+                return
+        return super().do_GET()
 
-# Exécuter la première mise à jour dans un thread séparé pour ne pas bloquer
+def run_http_server():
+    port = int(os.environ.get("PORT", 10000))
+    socketserver.TCPServer.allow_reuse_address = True
+    with socketserver.TCPServer(("", port), InstantAppHandler) as httpd:
+        print(f"--> Serveur HTTP actif sur le port {port}")
+        httpd.serve_forever()
+
+threading.Thread(target=run_http_server, daemon=True).start()
+
+# Première évaluation au démarrage dans un thread
 threading.Thread(target=check_and_update, daemon=True).start()
 
 schedule.every().hour.at(":00").do(check_and_update)
