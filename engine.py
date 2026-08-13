@@ -14,7 +14,7 @@ os.environ['TZ'] = 'Europe/Paris'
 if hasattr(time, 'tzset'):
     time.tzset()
 
-print("--> [START] Moteur Instant démarré (Règle stricte 75 caractères)", flush=True)
+print("--> [START] Moteur Instant démarré (Règle stricte 80 caractères)", flush=True)
 
 current_news = {
     "FR": {"headline": "Analyse Gemini en cours...", "url": "https://news.google.fr"},
@@ -69,11 +69,10 @@ def clean_url(raw_url):
     match = re.search(r'https?://[^\s"\'<>]+', raw_url)
     return match.group(0) if match else raw_url.strip()
 
-def enforce_char_limit(text, max_len=75):
+def enforce_char_limit(text, max_len=80):
     text = text.strip()
     if len(text) <= max_len:
         return text
-    # Tronquer au dernier mot complet avant la limite
     truncated = text[:max_len].rsplit(' ', 1)[0]
     return truncated.strip()
 
@@ -103,8 +102,8 @@ RÔLE : Rédacteur en Chef d'un média d'urgence ("L'Information Évidence du Mo
 MISSION : Réécrire l'actualité majeure sous la forme d'un titre ULTRA-PERCUTANT.
 
 CONSIGNES STRICTES DE LONGUEUR :
-1. MAXIMUM ABSOLU : 75 caractères (espaces compris). Sois extrêmement court et direct.
-2. STYLE : Sujet + Verbe au présent + Complément essentiel. Pas de blabla.
+1. MAXIMUM ABSOLU : 80 caractères (espaces compris). Sois court, clair et direct.
+2. STYLE : Sujet + Verbe au présent + Complément essentiel.
 3. INTERDICTIONS : Pas de subordonnées ("qui", "que"), pas de mots superflus.
 4. CONSENSUS & PROXIMITÉ : Événement majeur national/international confirmé par au moins 2 sources.
 
@@ -122,7 +121,7 @@ ROLE: Editor-in-Chief of a high-urgency US news app ("The Essential News Right N
 MISSION: Select and rewrite the SINGLE most critical national story into a CRISP headline.
 
 STRICT LENGTH RULES:
-1. ABSOLUTE MAXIMUM: 75 characters including spaces. Keep it as brief as possible.
+1. ABSOLUTE MAXIMUM: 80 characters including spaces.
 2. STYLE: Subject + Active present tense verb + Core fact.
 3. STRICT EXCLUSIONS: No local crime, sports, weather, entertainment, or opinion pieces.
 4. CONSENSUS: Must be covered by at least 2 outlets.
@@ -194,8 +193,7 @@ def check_and_update():
         res_fr = evaluate_news("FR", news_fr)
         if res_fr and "|||" in res_fr:
             h, u = res_fr.split("|||", 1)
-            # Application stricte de la limite des 75 caractères via Python
-            clean_headline = enforce_char_limit(h, 75)
+            clean_headline = enforce_char_limit(h, 80)
             current_news["FR"] = {"headline": clean_headline, "url": clean_url(u)}
     except Exception as e:
         print(f"⚠️ Erreur FR : {e}", flush=True)
@@ -206,8 +204,7 @@ def check_and_update():
         res_us = evaluate_news("US", news_us)
         if res_us and "|||" in res_us:
             h, u = res_us.split("|||", 1)
-            # Application stricte de la limite des 75 caractères via Python
-            clean_headline = enforce_char_limit(h, 75)
+            clean_headline = enforce_char_limit(h, 80)
             current_news["US"] = {"headline": clean_headline, "url": clean_url(u)}
     except Exception as e:
         print(f"⚠️ Erreur US : {e}", flush=True)
