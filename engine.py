@@ -31,6 +31,7 @@ class InstantAppHandler(http.server.SimpleHTTPRequestHandler):
 
 def run_http_server():
     port = int(os.environ.get("PORT", 10000))
+    socketserver.TCPServer.allow_reuse_address = True
     with socketserver.TCPServer(("", port), InstantAppHandler) as httpd:
         print(f"--> Serveur HTTP actif sur le port {port}")
         httpd.serve_forever()
@@ -191,7 +192,7 @@ def update_html_files():
             print(f"--> Erreur mise à jour HTML ({filename}) : {e}")
 
 def check_and_update():
-    print(f"[{time.strftime('%H:%M:%S')}] --- ÉVALUATION FR/US (Loi de proximité) ---")
+    print(f"[{time.strftime('%H:%M:%S')}] --- ÉVALUATION FR/US ---")
     
     news_fr = fetch_rss_items(SOURCES_FR)
     res_fr = evaluate_news("FR", news_fr)
@@ -213,12 +214,13 @@ if os.path.exists("app.html") and not os.path.exists("index.html"):
         with open("index.html", "w", encoding="utf-8") as f_out:
             f_out.write(f_in.read())
 
+# Lancement immédiat au démarrage pour forcer l'actualisation
 check_and_update()
 
 schedule.every().hour.at(":00").do(check_and_update)
 schedule.every().hour.at(":30").do(check_and_update)
 
-print("--> Moteur FR/US actif avec règle de proximité.\n")
+print("--> Moteur prêt sur Render.\n")
 
 while True:
     schedule.run_pending()
