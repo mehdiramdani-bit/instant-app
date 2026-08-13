@@ -28,14 +28,9 @@
     }
     .brand { font-weight: 700; color: #fff; }
     
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
     .lang-picker {
       display: flex;
-      gap: 6px;
+      gap: 12px;
       font-weight: 600;
     }
     .lang-btn {
@@ -45,6 +40,7 @@
       font-size: 0.8rem;
       cursor: pointer;
       transition: color 0.2s ease;
+      letter-spacing: 0.1em;
     }
     .lang-btn.active {
       color: #ffffff;
@@ -101,12 +97,9 @@
 
   <header>
     <span class="brand">INSTANT</span>
-    <div class="header-right">
-      <div class="lang-picker">
-        <button class="lang-btn active" id="btn-fr" onclick="switchLang('FR')">FR</button>
-        <button class="lang-btn" id="btn-us" onclick="switchLang('US')">US</button>
-      </div>
-      <span id="time-indicator">--:--</span>
+    <div class="lang-picker">
+      <button class="lang-btn active" id="btn-fr" onclick="switchLang('FR')">FR</button>
+      <button class="lang-btn" id="btn-us" onclick="switchLang('US')">US</button>
     </div>
   </header>
 
@@ -123,36 +116,10 @@
   <script>
     let currentLang = localStorage.getItem('instant_lang') || 'FR';
 
-    function getFormattedTime(timeStr, lang) {
-      if (!timeStr || timeStr === "--:--") return "--:--";
-      
-      // Convertir HH:MM en heure locale du visiteur
-      const parts = timeStr.split(':');
-      if (parts.length === 2) {
-        const now = new Date();
-        now.setHours(parseInt(parts[0], 10));
-        now.setMinutes(parseInt(parts[1], 10));
-
-        if (lang === 'US') {
-          // Format heure locale US (ex: UPDATED 2:30 PM ou 14:30 selon paramètres système)
-          const localTime = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-          return `UPDATED ${localTime}`;
-        } else {
-          // Format heure locale FR (ex: MÀJ 14:30)
-          const localTime = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', hour12: false });
-          return `MÀJ ${localTime}`;
-        }
-      }
-      return lang === 'US' ? `UPDATED ${timeStr}` : `MÀJ ${timeStr}`;
-    }
-
     function renderNews() {
       try {
         const rawData = document.getElementById('news-data').textContent;
         const data = JSON.parse(rawData);
-
-        // Mise à jour de l'indicateur d'heure selon la langue et le fuseau local
-        document.getElementById('time-indicator').textContent = getFormattedTime(data.time, currentLang);
 
         if (currentLang === 'US') {
           document.getElementById('source-link').textContent = "View source ↗";
