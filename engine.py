@@ -56,7 +56,6 @@ SOURCES_FR = [
     {"name": "Les Echos", "url": "https://www.lesechos.fr/rss/rss_une.xml", "domain": "https://www.lesechos.fr"}
 ]
 
-# Sources 100% axées sur l'actualité US (AP, NYT, NPR, CNN, WSJ)
 SOURCES_US = [
     {"name": "AP News", "url": "https://feedx.net/rss/ap.xml", "domain": "https://apnews.com"},
     {"name": "NY Times", "url": "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml", "domain": "https://www.nytimes.com"},
@@ -112,12 +111,13 @@ Voici la sélection des titres issus de la UNE des grands journaux nationaux fra
 Information actuelle : "{current_h}"
 
 RÔLE : Rédacteur en Chef d'un média d'urgence ("L'Information Évidente du Moment").
-Mission : Choisir L'UNIQUE sujet national ou international majeur qui domine les Unes aujourd'hui.
+Mission : Choisir L'UNIQUE sujet majeur qui domine l'actualité en France aujourd'hui.
 
 CRITÈRES :
 1. PRIORITÉ AUX TAGS [TOP_HEADLINE].
 2. CONSENSUS MULTI-MÉDIAS (sujet apparaissant dans au moins 2 sources).
-3. EXCLUSIONS STRICTES : arrêtés locaux, faits divers régionaux, météo locale, culture/sports.
+3. LOI DE PROXIMITÉ ÉDITORIALE : Privilégier les enjeux impactant directement la France ou le public français. Un sujet international ne doit être choisi que s'il est une priorité absolue pour les médias français.
+4. EXCLUSIONS STRICTES : faits divers régionaux, météo locale, culture/sports, événements isolés sans impact national.
 
 RÈGLES D'ÉVALUATION :
 - Si l'information actuellement affichée traite DÉJÀ du sujet majeur, réponds "NO_CHANGE".
@@ -135,12 +135,13 @@ Here is the selection of top headlines from major US news outlets:
 Current headline displayed: "{current_h}"
 
 ROLE: Editor-in-Chief of a high-urgency news app ("The Essential News Right Now").
-Mission: Pick the SINGLE most critical national or global news story dominating US front pages today.
+Mission: Pick the SINGLE most critical news story dominating US media attention today.
 
 CRITERIA:
 1. PRIORITY TO [TOP_HEADLINE] tags.
 2. MULTI-MEDIA CONSENSUS (stories reported by 2+ distinct US outlets).
-3. STRICT EXCLUSIONS: local crime/accidents, state-level politics, sports, entertainment, opinion pieces.
+3. PROXIMITY RULE: Prioritize stories directly affecting the United States or the American public. Global stories should only be selected if they are a top consensus story across US media.
+4. STRICT EXCLUSIONS: local crime/accidents, state-level politics, sports, entertainment, opinion pieces.
 
 EVALUATION:
 - If current headline ALREADY covers the dominant story, reply "NO_CHANGE".
@@ -190,7 +191,7 @@ def update_html_files():
             print(f"--> Erreur mise à jour HTML ({filename}) : {e}")
 
 def check_and_update():
-    print(f"[{time.strftime('%H:%M:%S')}] --- ÉVALUATION FR/US ---")
+    print(f"[{time.strftime('%H:%M:%S')}] --- ÉVALUATION FR/US (Loi de proximité) ---")
     
     news_fr = fetch_rss_items(SOURCES_FR)
     res_fr = evaluate_news("FR", news_fr)
@@ -217,7 +218,7 @@ check_and_update()
 schedule.every().hour.at(":00").do(check_and_update)
 schedule.every().hour.at(":30").do(check_and_update)
 
-print("--> Moteur US 100% américain prêt.\n")
+print("--> Moteur FR/US actif avec règle de proximité.\n")
 
 while True:
     schedule.run_pending()
