@@ -14,7 +14,7 @@ os.environ['TZ'] = 'Europe/Paris'
 if hasattr(time, 'tzset'):
     time.tzset()
 
-print("--> [START] Moteur Instant démarré (Prompts renforcés)", flush=True)
+print("--> [START] Moteur Instant démarré (Règle stricte 75 caractères)", flush=True)
 
 current_news = {
     "FR": {"headline": "Analyse Gemini en cours...", "url": "https://news.google.fr"},
@@ -69,6 +69,14 @@ def clean_url(raw_url):
     match = re.search(r'https?://[^\s"\'<>]+', raw_url)
     return match.group(0) if match else raw_url.strip()
 
+def enforce_char_limit(text, max_len=75):
+    text = text.strip()
+    if len(text) <= max_len:
+        return text
+    # Tronquer au dernier mot complet avant la limite
+    truncated = text[:max_len].rsplit(' ', 1)[0]
+    return truncated.strip()
+
 def evaluate_news(lang, news_list):
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
@@ -92,13 +100,13 @@ Voici la sélection des titres issus de la UNE des grands journaux nationaux fra
 Information actuellement affichée : "{current_h}"
 
 RÔLE : Rédacteur en Chef d'un média d'urgence ("L'Information Évidence du Moment").
-MISSION : Choisir L'UNIQUE sujet qui domine l'actualité en France à cette heure-ci.
+MISSION : Réécrire l'actualité majeure sous la forme d'un titre ULTRA-PERCUTANT.
 
-RÈGLE DE PROXIMITÉ ET D'ÉCHELLE :
-1. ÉCHELLE NATIONALE / GLOBALE : Priorité absolue aux événements ayant un impact direct sur le pays entier ou la géopolitique majeure.
-2. CONSENSUS MULTI-MÉDIAS : Le sujet doit être repris par AU MOINS 2 sources distinctes.
-3. RÈGLE DE TEMPORALITÉ : Favoriser l'événement le plus chaud / le plus récent.
-4. EXCLUSIONS STRICTES : Faits divers locaux/régionaux, politique municipale, météo, culture, sports, faits d'actualité secondaires.
+CONSIGNES STRICTES DE LONGUEUR :
+1. MAXIMUM ABSOLU : 75 caractères (espaces compris). Sois extrêmement court et direct.
+2. STYLE : Sujet + Verbe au présent + Complément essentiel. Pas de blabla.
+3. INTERDICTIONS : Pas de subordonnées ("qui", "que"), pas de mots superflus.
+4. CONSENSUS & PROXIMITÉ : Événement majeur national/international confirmé par au moins 2 sources.
 
 FORMAT DE RÉPONSE EXIGÉ :
 TITRE_REECRIT|||LINK
@@ -111,13 +119,13 @@ Here is the selection of top headlines from major domestic US news outlets:
 Current headline displayed: "{current_h}"
 
 ROLE: Editor-in-Chief of a high-urgency US news app ("The Essential News Right Now").
-MISSION: Select the SINGLE most critical national story dominating American headlines right now.
+MISSION: Select and rewrite the SINGLE most critical national story into a CRISP headline.
 
-PROXIMITY AND SCALE RULES:
-1. NATIONAL / FEDERAL IMPACT: Absolute priority to stories affecting the entire nation or major geopolitical shifts.
-2. MULTI-OUTLET CONSENSUS: The story MUST be covered by AT LEAST 2 different US news outlets.
-3. TIMELINESS: Prioritize the most urgent and developing news.
-4. STRICT EXCLUSIONS: Local crime/accidents, state-level politics, weather, sports, entertainment, opinion pieces.
+STRICT LENGTH RULES:
+1. ABSOLUTE MAXIMUM: 75 characters including spaces. Keep it as brief as possible.
+2. STYLE: Subject + Active present tense verb + Core fact.
+3. STRICT EXCLUSIONS: No local crime, sports, weather, entertainment, or opinion pieces.
+4. CONSENSUS: Must be covered by at least 2 outlets.
 
 REQUIRED RESPONSE FORMAT:
 REWRITTEN_HEADLINE|||LINK
@@ -186,7 +194,9 @@ def check_and_update():
         res_fr = evaluate_news("FR", news_fr)
         if res_fr and "|||" in res_fr:
             h, u = res_fr.split("|||", 1)
-            current_news["FR"] = {"headline": h.strip(), "url": clean_url(u)}
+            # Application stricte de la limite des 75 caractères via Python
+            clean_headline = enforce_char_limit(h, 75)
+            current_news["FR"] = {"headline": clean_headline, "url": clean_url(u)}
     except Exception as e:
         print(f"⚠️ Erreur FR : {e}", flush=True)
 
@@ -196,7 +206,9 @@ def check_and_update():
         res_us = evaluate_news("US", news_us)
         if res_us and "|||" in res_us:
             h, u = res_us.split("|||", 1)
-            current_news["US"] = {"headline": h.strip(), "url": clean_url(u)}
+            # Application stricte de la limite des 75 caractères via Python
+            clean_headline = enforce_char_limit(h, 75)
+            current_news["US"] = {"headline": clean_headline, "url": clean_url(u)}
     except Exception as e:
         print(f"⚠️ Erreur US : {e}", flush=True)
 
