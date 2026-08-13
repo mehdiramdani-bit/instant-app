@@ -14,7 +14,7 @@ os.environ['TZ'] = 'Europe/Paris'
 if hasattr(time, 'tzset'):
     time.tzset()
 
-print("--> [START] Moteur Instant démarré (gemini-3.6-flash / 3.5-flash prioritaires)", flush=True)
+print("--> [START] Moteur Instant démarré avec Gemini 2.0-flash en filet de sécurité", flush=True)
 
 current_news = {
     "FR": {"headline": "Analyse Gemini en cours...", "url": "https://news.google.fr"},
@@ -112,7 +112,7 @@ ROLE: Editor-in-Chief of a high-urgency news app ("The Essential News Right Now"
 Mission: Pick the SINGLE most critical news story dominating US front pages today.
 
 CRITERIA:
-1. PRIORITY TO [TOP_HEADLINE] tags.
+1. PRIORITY TO [TOP_HEADLINE].
 2. MULTI-MEDIA CONSENSUS.
 3. STRICT EXCLUSIONS: local crime, state politics, sports.
 
@@ -120,12 +120,12 @@ REQUIRED RESPONSE FORMAT:
 REWRITTEN_HEADLINE|||LINK
 """
 
-    # 3.6 et 3.5 en priorité 1, suivis de 2.5 et 1.5 en secours
+    # Liste des modèles réels acceptés par la v1beta
     models_to_try = [
         "gemini-3.6-flash",
         "gemini-3.5-flash",
-        "gemini-2.5-flash",
-        "gemini-1.5-flash"
+        "gemini-2.0-flash",
+        "gemini-flash"
     ]
     
     for m in models_to_try:
