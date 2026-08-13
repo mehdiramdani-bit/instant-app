@@ -31,7 +31,6 @@ class InstantAppHandler(http.server.SimpleHTTPRequestHandler):
 
 def run_http_server():
     port = int(os.environ.get("PORT", 10000))
-    socketserver.TCPServer.allow_reuse_address = True
     with socketserver.TCPServer(("", port), InstantAppHandler) as httpd:
         print(f"--> Serveur HTTP actif sur le port {port}")
         httpd.serve_forever()
@@ -58,10 +57,8 @@ SOURCES_FR = [
 ]
 
 SOURCES_US = [
-    {"name": "AP News", "url": "https://feedx.net/rss/ap.xml", "domain": "https://apnews.com"},
     {"name": "NY Times", "url": "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml", "domain": "https://www.nytimes.com"},
-    {"name": "NPR", "url": "https://feeds.npr.org/1001/rss.xml", "domain": "https://www.npr.org"},
-    {"name": "CNN", "url": "http://rss.cnn.com/rss/cnn_topstories.rss", "domain": "https://www.cnn.com"},
+    {"name": "BBC US", "url": "http://feeds.bbci.co.uk/news/world/us_and_canada/rss.xml", "domain": "https://www.bbc.com"},
     {"name": "WSJ", "url": "https://feeds.a.dj.com/rss/WSJNewsPlus.xml", "domain": "https://www.wsj.com"}
 ]
 
@@ -111,14 +108,13 @@ Voici la sélection des titres issus de la UNE des grands journaux nationaux fra
 
 Information actuelle : "{current_h}"
 
-RÔLE : Rédacteur en Chef d'un média d'urgence ("L'Information Évidence du Moment").
-Mission : Choisir L'UNIQUE sujet majeur qui domine l'actualité en France aujourd'hui.
+RÔLE : Rédacteur en Chef d'un média d'urgence ("L'Information Évidente du Moment").
+Mission : Choisir L'UNIQUE sujet national ou international majeur qui domine les Unes aujourd'hui.
 
 CRITÈRES :
 1. PRIORITÉ AUX TAGS [TOP_HEADLINE].
 2. CONSENSUS MULTI-MÉDIAS (sujet apparaissant dans au moins 2 sources).
-3. LOI DE PROXIMITÉ ÉDITORIALE : Privilégier les enjeux impactant directement la France ou le public français. Un sujet international ne doit être choisi que s'il est une priorité absolue pour les médias français.
-4. EXCLUSIONS STRICTES : faits divers régionaux, météo locale, culture/sports, événements isolés sans impact national.
+3. EXCLUSIONS STRICTES : arrêtés locaux, faits divers régionaux, météo locale, culture/sports.
 
 RÈGLES D'ÉVALUATION :
 - Si l'information actuellement affichée traite DÉJÀ du sujet majeur, réponds "NO_CHANGE".
@@ -130,19 +126,18 @@ TITRE_REECRIT|||LINK
 """
     else:
         prompt = f"""
-Here is the selection of top headlines from major US news outlets:
+Here is the selection of top headlines from major US/International news outlets:
 {news_list}
 
 Current headline displayed: "{current_h}"
 
 ROLE: Editor-in-Chief of a high-urgency news app ("The Essential News Right Now").
-Mission: Pick the SINGLE most critical news story dominating US media attention today.
+Mission: Pick the SINGLE most critical national or global news story dominating US front pages today.
 
 CRITERIA:
 1. PRIORITY TO [TOP_HEADLINE] tags.
-2. MULTI-MEDIA CONSENSUS (stories reported by 2+ distinct US outlets).
-3. PROXIMITY RULE: Prioritize stories directly affecting the United States or the American public. Global stories should only be selected if they are a top consensus story across US media.
-4. STRICT EXCLUSIONS: local crime/accidents, state-level politics, sports, entertainment, opinion pieces.
+2. MULTI-MEDIA CONSENSUS (stories reported by 2+ distinct outlets).
+3. STRICT EXCLUSIONS: local crime/accidents, state-level politics, sports, entertainment, opinion pieces.
 
 EVALUATION:
 - If current headline ALREADY covers the dominant story, reply "NO_CHANGE".
@@ -153,7 +148,7 @@ REWRITTEN_HEADLINE|||LINK
 (or "NO_CHANGE")
 """
 
-    models_to_try = ["gemini-2.5-flash", "gemini-1.5-flash"]
+    models_to_try = ["gemini-3.6-flash", "gemini-3.5-flash"]
     for m in models_to_try:
         try:
             res = client.models.generate_content(model=m, contents=prompt)
@@ -219,7 +214,7 @@ check_and_update()
 schedule.every().hour.at(":00").do(check_and_update)
 schedule.every().hour.at(":30").do(check_and_update)
 
-print("--> Moteur prêt sur Render.\n")
+print("--> Moteur FR/US prêt.\n")
 
 while True:
     schedule.run_pending()
