@@ -14,7 +14,7 @@ os.environ['TZ'] = 'Europe/Paris'
 if hasattr(time, 'tzset'):
     time.tzset()
 
-print("--> [START] Moteur Instant démarré (Sources US 100% natives)", flush=True)
+print("--> [START] Moteur Instant démarré (Prompts renforcés)", flush=True)
 
 current_news = {
     "FR": {"headline": "Analyse Gemini en cours...", "url": "https://news.google.fr"},
@@ -28,7 +28,6 @@ SOURCES_FR = [
     {"name": "BFM TV", "url": "https://www.bfmtv.com/rss/info/flux-rss/flux-toutes-les-actualites/", "domain": "https://www.bfmtv.com"}
 ]
 
-# Remplacement de la BBC par des pure-players / réseaux US natifs
 SOURCES_US = [
     {"name": "NY Times", "url": "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml", "domain": "https://www.nytimes.com"},
     {"name": "AP News", "url": "https://feedx.net/rss/ap.xml", "domain": "https://apnews.com"},
@@ -93,12 +92,13 @@ Voici la sélection des titres issus de la UNE des grands journaux nationaux fra
 Information actuellement affichée : "{current_h}"
 
 RÔLE : Rédacteur en Chef d'un média d'urgence ("L'Information Évidence du Moment").
-Mission : Choisir L'UNIQUE sujet national ou international majeur qui domine les Unes aujourd'hui.
+MISSION : Choisir L'UNIQUE sujet qui domine l'actualité en France à cette heure-ci.
 
-CRITÈRES :
-1. PRIORITÉ AUX TAGS [TOP_HEADLINE].
-2. CONSENSUS MULTI-MÉDIAS (sujet apparaissant dans au moins 2 sources).
-3. EXCLUSIONS STRICTES : faits divers régionaux, météo, culture/sports.
+RÈGLE DE PROXIMITÉ ET D'ÉCHELLE :
+1. ÉCHELLE NATIONALE / GLOBALE : Priorité absolue aux événements ayant un impact direct sur le pays entier ou la géopolitique majeure.
+2. CONSENSUS MULTI-MÉDIAS : Le sujet doit être repris par AU MOINS 2 sources distinctes.
+3. RÈGLE DE TEMPORALITÉ : Favoriser l'événement le plus chaud / le plus récent.
+4. EXCLUSIONS STRICTES : Faits divers locaux/régionaux, politique municipale, météo, culture, sports, faits d'actualité secondaires.
 
 FORMAT DE RÉPONSE EXIGÉ :
 TITRE_REECRIT|||LINK
@@ -111,12 +111,13 @@ Here is the selection of top headlines from major domestic US news outlets:
 Current headline displayed: "{current_h}"
 
 ROLE: Editor-in-Chief of a high-urgency US news app ("The Essential News Right Now").
-Mission: Pick the SINGLE most critical national or global news story dominating major American front pages today.
+MISSION: Select the SINGLE most critical national story dominating American headlines right now.
 
-CRITERIA:
-1. PRIORITY TO [TOP_HEADLINE].
-2. MULTI-MEDIA CONSENSUS.
-3. STRICT EXCLUSIONS: local crime, state politics, sports, celebrity news.
+PROXIMITY AND SCALE RULES:
+1. NATIONAL / FEDERAL IMPACT: Absolute priority to stories affecting the entire nation or major geopolitical shifts.
+2. MULTI-OUTLET CONSENSUS: The story MUST be covered by AT LEAST 2 different US news outlets.
+3. TIMELINESS: Prioritize the most urgent and developing news.
+4. STRICT EXCLUSIONS: Local crime/accidents, state-level politics, weather, sports, entertainment, opinion pieces.
 
 REQUIRED RESPONSE FORMAT:
 REWRITTEN_HEADLINE|||LINK
