@@ -10,10 +10,14 @@ import http.server
 import socketserver
 from google import genai
 
-# 1. Gestionnaire HTTP personnalisé pour servir automatiquement la page HTML
+# Forcer le fuseau horaire de Paris
+os.environ['TZ'] = 'Europe/Paris'
+if hasattr(time, 'tzset'):
+    time.tzset()
+
+# 1. Gestionnaire HTTP pour Render
 class InstantAppHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
-        # Si l'utilisateur demande la racine (/), on le redirige vers app.html ou index.html
         if self.path in ['/', '/index.html', '/app.html']:
             filename = "app.html" if os.path.exists("app.html") else "index.html"
             if os.path.exists(filename):
@@ -23,7 +27,6 @@ class InstantAppHandler(http.server.SimpleHTTPRequestHandler):
                 with open(filename, 'rb') as f:
                     self.wfile.write(f.read())
                 return
-        # Sinon, comportement standard pour les autres fichiers (icônes, etc.)
         return super().do_GET()
 
 def run_http_server():
@@ -44,17 +47,15 @@ client = genai.Client(api_key=GEMINI_API_KEY)
 current_headline = ""
 
 def fetch_live_news():
+    # Sources resserrées sur le grand public national (RFI et Courrier International retirés)
     rss_sources = [
         {"url": "https://www.francetvinfo.fr/titres.rss", "domain": "https://www.francetvinfo.fr"},
         {"url": "https://www.lefigaro.fr/rss/figaro_flash-actu.xml", "domain": "https://www.lefigaro.fr"},
         {"url": "https://www.lemonde.fr/en-direct/rss_full.xml", "domain": "https://www.lemonde.fr"},
         {"url": "https://www.bfmtv.com/rss/info/flux-rss/flux-toutes-les-actualites/", "domain": "https://www.bfmtv.com"},
         {"url": "https://www.ouest-france.fr/rss-en-continu.xml", "domain": "https://www.ouest-france.fr"},
-        {"url": "https://www.rfi.fr/fr/contenu/general/rss", "domain": "https://www.rfi.fr"},
-        {"url": "https://www.courrierinternational.com/feed/all/rss.xml", "domain": "https://www.courrierinternational.com"},
         {"url": "https://fr.euronews.com/rss", "domain": "https://fr.euronews.com"},
-        {"url": "https://www.lesechos.fr/rss/rss_une.xml", "domain": "https://www.lesechos.fr"},
-        {"url": "https://www.latribune.fr/feed/full/rss.xml", "domain": "https://www.latribune.fr"}
+        {"url": "https://www.lesechos.fr/rss/rss_une.xml", "domain": "https://www.lesechos.fr"}
     ]
     
     context = ssl._create_unverified_context()
@@ -70,7 +71,7 @@ def fetch_live_news():
             html = urllib.request.urlopen(req, context=context, timeout=5).read()
             feed = feedparser.parse(html)
             
-            for entry in feed.entries[:5]:
+            for entry in feed.entries[:6]:
                 title = entry.title.replace("\n", " ").strip()
                 link = entry.link.strip()
                 
@@ -79,7 +80,7 @@ def fetch_live_news():
                 
                 if title not in seen_titles:
                     seen_titles.add(title)
-                    items.append(f"TITRE BRUT: {title} | LINK: {link}")
+                    items.append(f"[{source['domain'].replace('https://www.', '').replace('https://', '')}] TITRE: {title} | LINK: {link}")
         except Exception:
             continue
                     
@@ -126,26 +127,35 @@ def check_and_update():
         return
 
     prompt = f"""
-Voici le fil des dépêches de dernière minute :
+Voici la liste des dépêches récentes issues de plusieurs médias majeurs :
 {news_list}
 
-L'information actuellement affichée sur l'écran est :
+L'information actuellement affichée à l'écran est :
 "{current_headline}"
 
 RÔLE & MISSION :
-Tu es le rédacteur en chef d'un média d'urgence. Évalue les dépêches ci-dessus et sélectionne celle qui obtient le MEILLEUR SCORE selon la grille (Multi-source, Impact direct, Proximité, Rupture).
+Tu es le Rédacteur en Chef d'un média d'urgence nationale ("L'Information Évidente du Moment").
+Ta mission absolue est de sélectionner L'UNE ET UNIQUE grande information nationale ou internationale majeure qui s'impose à tous ce matin/ce jour.
 
-RÈGLES DE RÉÉCRITURE DU TITRE :
-1. Réécris le titre de la dépêche choisie pour qu'il soit ultra-percutant.
-2. LIMITE STRICTE DE LONGUEUR : Maximum 75 caractères (espaces compris).
-3. Style : Présent de l'indicatif, tournure active, aucun mot inutile.
-4. Reste strictly fidèle aux faits bruts. N'invente aucune information.
+GRILLE DE SELECTION STRICTE (PAR ORDRE DE PRIORITÉ) :
+1. CONSENSUS MULTI-MÉDIAS (CRITÈRE N°1) : Identifie le SUJET RÉCURRENT qui est traité simultanément par plusieurs médias différents dans la liste. C'est le signal absolu de la "Grosse Actu".
+2. IMPACT NATIONAL VS. LOCAL : Privilégie strictement les enjeux nationaux/globaux (ex: crise climatique/sécheresse, politique nationale majeure, urgence internationale, économie globale).
+3. EXCLUSIONS STRICTES : Exclus impérativement :
+   - Les informations régionales ou locales (ex: arrêtés préfectoraux, limitations de vitesse régionales, faits divers locaux, transports locaux).
+   - Les faits divers isolés sans portée nationale.
+   - Les annonces de sorties culturelles, sportives secondaires ou rubriques "art de vivre".
 
-CONSIGNE DE SORTIE :
-- Si l'information actuellement affichée sur l'écran reste la plus urgente/importante, réponds strictly "NO_CHANGE".
-- Sinon, renvoie le titre réécrit et l'URL exacte associée à la dépêche originale.
+CONSIGNE D'ÉVALUATION DE L'EXISTANT :
+- Si l'information actuellement affichée ("{current_headline}") traite DÉJÀ du sujet majeur identifié dans la liste, réponds strictement "NO_CHANGE".
+- Ne change l'information que si un NOUVEAU sujet d'ampleur supérieure apparaît ou si le sujet majeur n'était pas encore affiché.
 
-FORMAT STRICT DE RÉPONSE : TITRE_REECRIT|||LINK
+RÈGLES DE RÉÉCRITURE (SI CHANGEMENT) :
+- Limite stricte : Maximum 75 caractères (espaces compris).
+- Style : Présent de l'indicatif, percutant, factuel, tournure active.
+
+FORMAT STRICT DE RÉPONSE :
+TITRE_REECRIT|||LINK
+(ou uniquement la chaîne "NO_CHANGE" si aucun changement)
 """
 
     models_to_try = ["gemini-3.6-flash", "gemini-3.5-flash"]
@@ -186,22 +196,18 @@ FORMAT STRICT DE RÉPONSE : TITRE_REECRIT|||LINK
         update_html_file()
         print(f"--> Pas de changement d'actu. Horodatage mis à jour à {time.strftime('%H:%M')}.\n")
 
-# Assurer la présence de index.html pour la compatibilité
 if os.path.exists("app.html") and not os.path.exists("index.html"):
     with open("app.html", "r", encoding="utf-8") as f_in:
         with open("index.html", "w", encoding="utf-8") as f_out:
             f_out.write(f_in.read())
 
-# Lancement immédiat au démarrage
 check_and_update()
 
-# Programmation explicite aux minutes pile :00 et :30
 schedule.every().hour.at(":00").do(check_and_update)
 schedule.every().hour.at(":30").do(check_and_update)
 
 print("--> Moteur actif. Prochains cycles programmés à :00 et :30 de chaque heure.\n")
 
-# Boucle d'écoute non-bloquante
 while True:
     schedule.run_pending()
     time.sleep(1)
