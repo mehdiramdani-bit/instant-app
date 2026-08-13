@@ -14,7 +14,7 @@ os.environ['TZ'] = 'Europe/Paris'
 if hasattr(time, 'tzset'):
     time.tzset()
 
-print("--> [START] Moteur Instant démarré (Règle stricte 80 caractères)", flush=True)
+print("--> [START] Moteur Instant démarré (Rédacteur Gemini naturel - Sans tronquage)", flush=True)
 
 current_news = {
     "FR": {"headline": "Analyse Gemini en cours...", "url": "https://news.google.fr"},
@@ -69,13 +69,6 @@ def clean_url(raw_url):
     match = re.search(r'https?://[^\s"\'<>]+', raw_url)
     return match.group(0) if match else raw_url.strip()
 
-def enforce_char_limit(text, max_len=80):
-    text = text.strip()
-    if len(text) <= max_len:
-        return text
-    truncated = text[:max_len].rsplit(' ', 1)[0]
-    return truncated.strip()
-
 def evaluate_news(lang, news_list):
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
@@ -99,13 +92,13 @@ Voici la sélection des titres issus de la UNE des grands journaux nationaux fra
 Information actuellement affichée : "{current_h}"
 
 RÔLE : Rédacteur en Chef d'un média d'urgence ("L'Information Évidence du Moment").
-MISSION : Réécrire l'actualité majeure sous la forme d'un titre ULTRA-PERCUTANT.
+MISSION : Réécrire l'actualité majeure sous la forme d'un titre naturel, complet et percutant.
 
-CONSIGNES STRICTES DE LONGUEUR :
-1. MAXIMUM ABSOLU : 80 caractères (espaces compris). Sois court, clair et direct.
-2. STYLE : Sujet + Verbe au présent + Complément essentiel.
-3. INTERDICTIONS : Pas de subordonnées ("qui", "que"), pas de mots superflus.
-4. CONSENSUS & PROXIMITÉ : Événement majeur national/international confirmé par au moins 2 sources.
+CONSIGNES ÉDITORIALES :
+1. LENGTH TARGET : Rédige une phrase complète d'environ 70 à 80 signes. La phrase doit être grammaticalement parfaite et se suffire à elle-même.
+2. STYLE : Sujet + Verbe au présent de l'indicatif + Fait principal.
+3. EXCLUSIONS STRICTES : Pas de faits divers régionaux, météo, culture, sports.
+4. CONSENSUS : Événement majeur confirmé par au moins 2 sources.
 
 FORMAT DE RÉPONSE EXIGÉ :
 TITRE_REECRIT|||LINK
@@ -118,10 +111,10 @@ Here is the selection of top headlines from major domestic US news outlets:
 Current headline displayed: "{current_h}"
 
 ROLE: Editor-in-Chief of a high-urgency US news app ("The Essential News Right Now").
-MISSION: Select and rewrite the SINGLE most critical national story into a CRISP headline.
+MISSION: Select and rewrite the SINGLE most critical national story into a crisp, complete headline.
 
-STRICT LENGTH RULES:
-1. ABSOLUTE MAXIMUM: 80 characters including spaces.
+EDITORIAL RULES:
+1. LENGTH TARGET: Write a complete, well-crafted sentence around 70 to 80 characters.
 2. STYLE: Subject + Active present tense verb + Core fact.
 3. STRICT EXCLUSIONS: No local crime, sports, weather, entertainment, or opinion pieces.
 4. CONSENSUS: Must be covered by at least 2 outlets.
@@ -193,8 +186,8 @@ def check_and_update():
         res_fr = evaluate_news("FR", news_fr)
         if res_fr and "|||" in res_fr:
             h, u = res_fr.split("|||", 1)
-            clean_headline = enforce_char_limit(h, 80)
-            current_news["FR"] = {"headline": clean_headline, "url": clean_url(u)}
+            # On prend directement le titre de Gemini sans AUCUNE coupe Python
+            current_news["FR"] = {"headline": h.strip(), "url": clean_url(u)}
     except Exception as e:
         print(f"⚠️ Erreur FR : {e}", flush=True)
 
@@ -204,8 +197,8 @@ def check_and_update():
         res_us = evaluate_news("US", news_us)
         if res_us and "|||" in res_us:
             h, u = res_us.split("|||", 1)
-            clean_headline = enforce_char_limit(h, 80)
-            current_news["US"] = {"headline": clean_headline, "url": clean_url(u)}
+            # On prend directement le titre de Gemini sans AUCUNE coupe Python
+            current_news["US"] = {"headline": h.strip(), "url": clean_url(u)}
     except Exception as e:
         print(f"⚠️ Erreur US : {e}", flush=True)
 
