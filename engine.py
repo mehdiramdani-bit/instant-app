@@ -11,7 +11,6 @@ import http.server
 import socketserver
 from google import genai
 
-# Forcer le fuseau horaire de Paris
 os.environ['TZ'] = 'Europe/Paris'
 if hasattr(time, 'tzset'):
     time.tzset()
@@ -25,7 +24,7 @@ if GEMINI_API_KEY:
         print(f"⚠️ Erreur Gemini : {e}")
 
 current_news = {
-    "FR": {"headline": "L'actualité majeure est en cours d'analyse...", "url": "https://news.google.fr"},
+    "FR": {"headline": "Analyse de l'actualité en cours...", "url": "https://news.google.fr"},
     "US": {"headline": "Analyzing top breaking news...", "url": "https://news.google.com"}
 }
 
@@ -49,6 +48,7 @@ def fetch_rss_items(sources):
     context = ssl._create_unverified_context()
     items = []
     seen_titles = set()
+    first_fallback = None
 
     for source in sources:
         try:
@@ -66,6 +66,9 @@ def fetch_rss_items(sources):
                 if link.startswith("/"):
                     link = source["domain"] + link
                 
+                if not first_fallback and title:
+                    first_fallback = (title, link)
+
                 if title not in seen_titles:
                     seen_titles.add(title)
                     badge = "[TOP_HEADLINE]" if index < 2 else "[SECONDARY]"
@@ -73,7 +76,7 @@ def fetch_rss_items(sources):
         except Exception:
             continue
                     
-    return "\n".join(items)
+    return "\n".join(items), first_fallback
 
 def clean_url(raw_url):
     match = re.search(r'https?://[^\s"\'<>]+', raw_url)
@@ -100,8 +103,8 @@ Mission : Choisir L'UNIQUE sujet majeur qui domine l'actualité en France aujour
 CRITÈRES :
 1. PRIORITÉ AUX TAGS [TOP_HEADLINE].
 2. CONSENSUS MULTI-MÉDIAS (sujet apparaissant dans au moins 2 sources).
-3. LOI DE PROXIMITÉ ÉDITORIALE : Privilégier les enjeux impactant directement la France ou le public français. Un sujet international ne doit être choisi que s'il est une priorité absolue pour les médias français.
-4. EXCLUSIONS STRICTES : faits divers régionaux, météo locale, culture/sports, événements isolés sans impact national.
+3. LOI DE PROXIMITÉ ÉDITORIALE : Privilégier les enjeux impactant directement la France.
+4. EXCLUSIONS STRICTES : faits divers régionaux, météo, culture/sports.
 
 RÈGLES D'ÉVALUATION :
 - Si l'information actuellement affichée traite DÉJÀ du sujet majeur, réponds "NO_CHANGE".
@@ -123,32 +126,37 @@ Mission: Pick the SINGLE most critical news story dominating US media attention 
 CRITERIA:
 1. PRIORITY TO [TOP_HEADLINE] tags.
 2. MULTI-MEDIA CONSENSUS (stories reported by 2+ distinct US outlets).
-3. PROXIMITY RULE: Prioritize stories directly affecting the United States or the American public. Global stories should only be selected if they are a top consensus story across US media.
-4. STRICT EXCLUSIONS: local crime/accidents, state-level politics, sports, entertainment, opinion pieces.
+3. PROXIMITY RULE: Prioritize stories directly affecting the US or American public.
+4. STRICT EXCLUSIONS: local crime, state-level politics, sports, entertainment.
 
 EVALUATION:
 - If current headline ALREADY covers the dominant story, reply "NO_CHANGE".
-- Otherwise rewrite the new story: Max 75 characters, active voice, present tense, crisp journalistic style.
+- Otherwise rewrite the new story: Max 75 characters, active voice, present tense, crisp style.
 
 RESPONSE FORMAT:
 REWRITTEN_HEADLINE|||LINK
 """
 
-    models_to_try = ["gemini-3.6-flash", "gemini-3.5-flash"]
+    models_to_try = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash"]
     for m in models_to_try:
         try:
             res = client.models.generate_content(model=m, contents=prompt)
             if res and res.text:
                 return res.text.strip()
-        except Exception:
+        except Exception as e:
+            print(f"⚠️ Test modèle {m} ({lang}) : {e}")
             continue
     return "NO_CHANGE"
 
 def check_and_update():
     print(f"[{time.strftime('%H:%M:%S')}] --- ÉVALUATION FR/US ---")
     
+    # Traitement FR
     try:
-        news_fr = fetch_rss_items(SOURCES_FR)
+        news_fr, fallback_fr = fetch_rss_items(SOURCES_FR)
+        if fallback_fr and ("en cours" in current_news["FR"]["headline"] or not current_news["FR"]["headline"]):
+            current_news["FR"] = {"headline": fallback_fr[0][:80], "url": fallback_fr[1]}
+
         res_fr = evaluate_news("FR", news_fr)
         if res_fr != "NO_CHANGE" and "|||" in res_fr:
             h, u = res_fr.split("|||", 1)
@@ -156,8 +164,12 @@ def check_and_update():
     except Exception as e:
         print(f"⚠️ Erreur FR : {e}")
 
+    # Traitement US
     try:
-        news_us = fetch_rss_items(SOURCES_US)
+        news_us, fallback_us = fetch_rss_items(SOURCES_US)
+        if fallback_us and ("Analyzing" in current_news["US"]["headline"] or not current_news["US"]["headline"]):
+            current_news["US"] = {"headline": fallback_us[0][:80], "url": fallback_us[1]}
+
         res_us = evaluate_news("US", news_us)
         if res_us != "NO_CHANGE" and "|||" in res_us:
             h, u = res_us.split("|||", 1)
@@ -165,7 +177,7 @@ def check_and_update():
     except Exception as e:
         print(f"⚠️ Erreur US : {e}")
 
-    print("--> Mise à jour FR/US terminée en mémoire.\n")
+    print("--> Mise à jour FR/US terminée.\n")
 
 class InstantAppHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
@@ -198,7 +210,7 @@ def run_http_server():
 
 threading.Thread(target=run_http_server, daemon=True).start()
 
-# Première évaluation au démarrage dans un thread
+# Lancement immédiat de l'actualisation
 threading.Thread(target=check_and_update, daemon=True).start()
 
 schedule.every().hour.at(":00").do(check_and_update)
