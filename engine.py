@@ -11,42 +11,18 @@ import http.server
 import socketserver
 from google import genai
 
-# Forcer le fuseau horaire de Paris
 os.environ['TZ'] = 'Europe/Paris'
 if hasattr(time, 'tzset'):
     time.tzset()
-
-class InstantAppHandler(http.server.SimpleHTTPRequestHandler):
-    def do_GET(self):
-        if self.path in ['/', '/index.html', '/app.html']:
-            filename = "app.html" if os.path.exists("app.html") else "index.html"
-            if os.path.exists(filename):
-                self.send_response(200)
-                self.send_header('Content-type', 'text/html; charset=utf-8')
-                self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
-                self.end_headers()
-                with open(filename, 'rb') as f:
-                    self.wfile.write(f.read())
-                return
-        return super().do_GET()
-
-def run_http_server():
-    port = int(os.environ.get("PORT", 10000))
-    socketserver.TCPServer.allow_reuse_address = True
-    with socketserver.TCPServer(("", port), InstantAppHandler) as httpd:
-        print(f"--> [SERVER] HTTP actif sur le port {port}")
-        httpd.serve_forever()
-
-threading.Thread(target=run_http_server, daemon=True).start()
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 client = None
 if GEMINI_API_KEY:
     try:
         client = genai.Client(api_key=GEMINI_API_KEY)
-        print("--> [GEMINI] Client API initialisé avec succès.")
+        print("--> [GEMINI] Client API initialisé.")
     except Exception as e:
-        print(f"⚠️ [GEMINI ERR] Erreur d'initialisation : {e}")
+        print(f"⚠️ [GEMINI ERR] {e}")
 
 current_news = {
     "FR": {"headline": "", "url": ""},
@@ -102,7 +78,7 @@ def clean_url(raw_url):
 
 def evaluate_news(lang, news_list):
     if not client or not news_list:
-        print(f"⚠️ [GEMINI] Impossible d'évaluer ({lang}) : client non prêt ou flux vide.")
+        print(f"⚠️ [GEMINI] Pas de client ou flux vide ({lang}).")
         return None
 
     current_h = current_news[lang]["headline"]
@@ -213,11 +189,35 @@ def check_and_update():
     update_html_files()
     print("--> --- FIN D'ÉVALUATION ---")
 
-# Lancer la synthèse en tâche de fond au démarrage
-threading.Thread(target=check_and_update, daemon=True).start()
+class InstantAppHandler(http.server.SimpleHTTPRequestHandler):
+    def do_GET(self):
+        if self.path in ['/', '/index.html', '/app.html']:
+            filename = "app.html" if os.path.exists("app.html") else "index.html"
+            if os.path.exists(filename):
+                self.send_response(200)
+                self.send_header('Content-type', 'text/html; charset=utf-8')
+                self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+                self.end_headers()
+                with open(filename, 'rb') as f:
+                    self.wfile.write(f.read())
+                return
+        return super().do_GET()
 
-schedule.every().hour.at(":00").do(lambda: threading.Thread(target=check_and_update, daemon=True).start())
-schedule.every().hour.at(":30").do(lambda: threading.Thread(target=check_and_update, daemon=True).start())
+def run_http_server():
+    port = int(os.environ.get("PORT", 10000))
+    socketserver.TCPServer.allow_reuse_address = True
+    with socketserver.TCPServer(("", port), InstantAppHandler) as httpd:
+        print(f"--> [SERVER] HTTP actif sur le port {port}")
+        httpd.serve_forever()
+
+# Lancer IMMÉDIATEMENT la première mise à jour sur le thread principal au démarrage du fichier !
+check_and_update()
+
+# Démarrer ensuite le serveur web
+threading.Thread(target=run_http_server, daemon=True).start()
+
+schedule.every().hour.at(":00").do(check_and_update)
+schedule.every().hour.at(":30").do(check_and_update)
 
 while True:
     schedule.run_pending()
