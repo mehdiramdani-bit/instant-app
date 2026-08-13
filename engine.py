@@ -23,6 +23,7 @@ class InstantAppHandler(http.server.SimpleHTTPRequestHandler):
             if os.path.exists(filename):
                 self.send_response(200)
                 self.send_header('Content-type', 'text/html; charset=utf-8')
+                self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
                 self.end_headers()
                 with open(filename, 'rb') as f:
                     self.wfile.write(f.read())
@@ -33,10 +34,9 @@ def run_http_server():
     port = int(os.environ.get("PORT", 10000))
     socketserver.TCPServer.allow_reuse_address = True
     with socketserver.TCPServer(("", port), InstantAppHandler) as httpd:
-        print(f"--> Serveur HTTP actif sur le port {port}")
+        print(f"--> [SERVER] HTTP actif sur le port {port}")
         httpd.serve_forever()
 
-# Démarrer le serveur HTTP immédiatement
 threading.Thread(target=run_http_server, daemon=True).start()
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
@@ -44,9 +44,9 @@ client = None
 if GEMINI_API_KEY:
     try:
         client = genai.Client(api_key=GEMINI_API_KEY)
-        print("--> Client Gemini initialisé.")
+        print("--> [GEMINI] Client API initialisé avec succès.")
     except Exception as e:
-        print(f"⚠️ Erreur initialisation Gemini : {e}")
+        print(f"⚠️ [GEMINI ERR] Erreur d'initialisation : {e}")
 
 current_news = {
     "FR": {"headline": "", "url": ""},
@@ -71,7 +71,6 @@ def fetch_rss_items(sources):
     context = ssl._create_unverified_context()
     items = []
     seen_titles = set()
-    first_fallback = None
 
     for source in sources:
         try:
@@ -85,31 +84,25 @@ def fetch_rss_items(sources):
             for index, entry in enumerate(feed.entries[:4]):
                 title = entry.title.replace("\n", " ").strip()
                 link = entry.link.strip()
-                
                 if link.startswith("/"):
                     link = source["domain"] + link
                 
-                if not first_fallback and title:
-                    first_fallback = (title, link)
-
                 if title not in seen_titles:
                     seen_titles.add(title)
                     badge = "[TOP_HEADLINE]" if index < 2 else "[SECONDARY]"
                     items.append(f"{badge} [{source['name']}] TITRE: {title} | LINK: {link}")
-        except Exception as e:
-            print(f"⚠️ Erreur RSS {source['name']} : {e}")
+        except Exception:
             continue
                     
-    return "\n".join(items), first_fallback
+    return "\n".join(items)
 
 def clean_url(raw_url):
     match = re.search(r'https?://[^\s"\'<>]+', raw_url)
-    if match:
-        return match.group(0)
-    return raw_url.strip()
+    return match.group(0) if match else raw_url.strip()
 
 def evaluate_news(lang, news_list):
     if not client or not news_list:
+        print(f"⚠️ [GEMINI] Impossible d'évaluer ({lang}) : client non prêt ou flux vide.")
         return None
 
     current_h = current_news[lang]["headline"]
@@ -119,7 +112,7 @@ def evaluate_news(lang, news_list):
 Voici la sélection des titres issus de la UNE des grands journaux nationaux français :
 {news_list}
 
-Information actuelle : "{current_h}"
+Information actuellement affichée : "{current_h}"
 
 RÔLE : Rédacteur en Chef d'un média d'urgence ("L'Information Évidence du Moment").
 Mission : Choisir L'UNIQUE sujet national ou international majeur qui domine les Unes aujourd'hui.
@@ -127,10 +120,15 @@ Mission : Choisir L'UNIQUE sujet national ou international majeur qui domine les
 CRITÈRES :
 1. PRIORITÉ AUX TAGS [TOP_HEADLINE].
 2. CONSENSUS MULTI-MÉDIAS (sujet apparaissant dans au moins 2 sources).
-3. EXCLUSIONS STRICTES : faits divers régionaux, météo, culture/sports.
+3. EXCLUSIONS STRICTES : arrêtés locaux, faits divers régionaux, météo locale, culture/sports.
+
+RÈGLES D'ÉVALUATION :
+- Si l'information actuellement affichée traite DÉJÀ du sujet majeur, réponds "NO_CHANGE".
+- Sinon réécris la nouvelle info : Max 75 caractères, présent de l'indicatif, percutant.
 
 FORMAT DE RÉPONSE :
 TITRE_REECRIT|||LINK
+(ou "NO_CHANGE")
 """
     else:
         prompt = f"""
@@ -144,24 +142,29 @@ Mission: Pick the SINGLE most critical national or global news story dominating 
 
 CRITERIA:
 1. PRIORITY TO [TOP_HEADLINE] tags.
-2. MULTI-MEDIA CONSENSUS.
-3. STRICT EXCLUSIONS: local crime, state politics, sports.
+2. MULTI-MEDIA CONSENSUS (stories reported by 2+ distinct outlets).
+3. STRICT EXCLUSIONS: local crime/accidents, state-level politics, sports, entertainment, opinion pieces.
+
+EVALUATION:
+- If current headline ALREADY covers the dominant story, reply "NO_CHANGE".
+- Otherwise rewrite the new story: Max 75 characters, active voice, present tense, crisp journalistic style.
 
 RESPONSE FORMAT:
 REWRITTEN_HEADLINE|||LINK
+(or "NO_CHANGE")
 """
 
-    models_to_try = ["gemini-2.5-flash", "gemini-1.5-flash"]
+    models_to_try = ["gemini-3.6-flash", "gemini-3.5-flash"]
     for m in models_to_try:
         try:
             res = client.models.generate_content(model=m, contents=prompt)
-            if res and res.text and "|||" in res.text:
-                print(f"--> [GEMINI OK] Synthèse réussie avec {m} ({lang})")
+            if res and res.text:
+                print(f"--> [GEMINI OK] Synthèse réussie avec le modèle {m} ({lang})")
                 return res.text.strip()
         except Exception as e:
-            print(f"⚠️ Test modèle {m} ({lang}) : {e}")
+            print(f"⚠️ Erreur modèle {m} ({lang}) : {e}")
             continue
-    return None
+    return "NO_CHANGE"
 
 def update_html_files():
     time_str = time.strftime("%H:%M")
@@ -188,49 +191,33 @@ def update_html_files():
             
             with open(filename, "w", encoding="utf-8") as f:
                 f.write(new_content)
-            print(f"--> HTML {filename} mis à jour avec succès à {time_str}.")
+            print(f"--> [HTML OK] {filename} mis à jour à {time_str}.")
         except Exception as e:
-            print(f"⚠️ Erreur mise à jour HTML ({filename}) : {e}")
+            print(f"⚠️ [HTML ERR] Erreur sur {filename} : {e}")
 
 def check_and_update():
-    print(f"[{time.strftime('%H:%M:%S')}] --- ÉVALUATION FR/US EN COURS ---")
+    print(f"[{time.strftime('%H:%M:%S')}] --- ÉVALUATION FR/US PAR GEMINI ---")
     
-    # FR
-    try:
-        news_fr, fallback_fr = fetch_rss_items(SOURCES_FR)
-        res_fr = evaluate_news("FR", news_fr)
-        if res_fr and "|||" in res_fr:
-            h, u = res_fr.split("|||", 1)
-            current_news["FR"] = {"headline": h.strip(), "url": clean_url(u)}
-        elif fallback_fr:
-            print("--> Titre FR brut de secours utilisé")
-            current_news["FR"] = {"headline": fallback_fr[0][:80], "url": fallback_fr[1]}
-    except Exception as e:
-        print(f"⚠️ Erreur traitement FR : {e}")
+    news_fr = fetch_rss_items(SOURCES_FR)
+    res_fr = evaluate_news("FR", news_fr)
+    if res_fr and res_fr != "NO_CHANGE" and "|||" in res_fr:
+        h, u = res_fr.split("|||", 1)
+        current_news["FR"] = {"headline": h.strip(), "url": clean_url(u)}
 
-    # US
-    try:
-        news_us, fallback_us = fetch_rss_items(SOURCES_US)
-        res_us = evaluate_news("US", news_us)
-        if res_us and "|||" in res_us:
-            h, u = res_us.split("|||", 1)
-            current_news["US"] = {"headline": h.strip(), "url": clean_url(u)}
-        elif fallback_us:
-            print("--> Titre US brut de secours utilisé")
-            current_news["US"] = {"headline": fallback_us[0][:80], "url": fallback_us[1]}
-    except Exception as e:
-        print(f"⚠️ Erreur traitement US : {e}")
+    news_us = fetch_rss_items(SOURCES_US)
+    res_us = evaluate_news("US", news_us)
+    if res_us and res_us != "NO_CHANGE" and "|||" in res_us:
+        h, u = res_us.split("|||", 1)
+        current_news["US"] = {"headline": h.strip(), "url": clean_url(u)}
 
     update_html_files()
-    print("--> Mise à jour FR/US terminée.\n")
+    print("--> --- FIN D'ÉVALUATION ---")
 
-# Lancer la première mise à jour dans un thread d'arrière-plan dédié
+# Lancer la synthèse en tâche de fond au démarrage
 threading.Thread(target=check_and_update, daemon=True).start()
 
 schedule.every().hour.at(":00").do(lambda: threading.Thread(target=check_and_update, daemon=True).start())
 schedule.every().hour.at(":30").do(lambda: threading.Thread(target=check_and_update, daemon=True).start())
-
-print("--> Moteur FR/US démarré.\n")
 
 while True:
     schedule.run_pending()
