@@ -14,7 +14,7 @@ os.environ['TZ'] = 'Europe/Paris'
 if hasattr(time, 'tzset'):
     time.tzset()
 
-print("--> [START] Moteur Instant démarré avec Gemini 2.0-flash en filet de sécurité", flush=True)
+print("--> [START] Moteur Instant démarré", flush=True)
 
 current_news = {
     "FR": {"headline": "Analyse Gemini en cours...", "url": "https://news.google.fr"},
@@ -120,12 +120,12 @@ REQUIRED RESPONSE FORMAT:
 REWRITTEN_HEADLINE|||LINK
 """
 
-    # Liste des modèles réels acceptés par la v1beta
+    # Séquence de modèles : Flash 3.6/3.5 puis gamme Pro de secours
     models_to_try = [
         "gemini-3.6-flash",
         "gemini-3.5-flash",
-        "gemini-2.0-flash",
-        "gemini-flash"
+        "gemini-2.5-pro",
+        "gemini-1.5-pro"
     ]
     
     for m in models_to_try:
@@ -135,7 +135,11 @@ REWRITTEN_HEADLINE|||LINK
                 print(f"✅ [GEMINI VALIDÉ] Modèle {m} a généré la synthèse ({lang})", flush=True)
                 return res.text.strip()
         except Exception as e:
-            print(f"⚠️ [GEMINI ÉCHEC] Modèle {m} ({lang}) : {e}", flush=True)
+            err_msg = str(e)
+            print(f"⚠️ [GEMINI ÉCHEC] Modèle {m} ({lang}) : {err_msg}", flush=True)
+            if "429" in err_msg:
+                # Si quota dépassé, on laisse 1.5s avant d'essayer le modèle suivant
+                time.sleep(1.5)
             continue
             
     print(f"❌ [GEMINI ÉCHEC] Aucun modèle n'a pu répondre pour {lang}.", flush=True)
