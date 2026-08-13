@@ -120,14 +120,22 @@ REQUIRED RESPONSE FORMAT:
 REWRITTEN_HEADLINE|||LINK
 """
 
-    # Séquence de modèles : Flash 3.6/3.5 puis gamme Pro de secours
-    models_to_try = [
-        "gemini-3.6-flash",
-        "gemini-3.5-flash",
-        "gemini-2.5-pro",
-        "gemini-1.5-pro"
-    ]
+    # Liste des modèles prioritaires + fallback automatique dynamique
+    preferred_models = ["gemini-3.6-flash", "gemini-3.5-flash"]
     
+    # Récupération dynamique des modèles disponibles si besoin
+    available_models = []
+    try:
+        for m in client.models.list():
+            name = m.name.replace("models/", "")
+            if "flash" in name or "pro" in name:
+                available_models.append(name)
+    except Exception:
+        pass
+
+    # Fusion des modèles prioritaires avec les modèles détectés sur la clé API
+    models_to_try = list(dict.fromkeys(preferred_models + available_models))
+
     for m in models_to_try:
         try:
             res = client.models.generate_content(model=m, contents=prompt)
@@ -136,10 +144,7 @@ REWRITTEN_HEADLINE|||LINK
                 return res.text.strip()
         except Exception as e:
             err_msg = str(e)
-            print(f"⚠️ [GEMINI ÉCHEC] Modèle {m} ({lang}) : {err_msg}", flush=True)
-            if "429" in err_msg:
-                # Si quota dépassé, on laisse 1.5s avant d'essayer le modèle suivant
-                time.sleep(1.5)
+            print(f"⚠️ [GEMINI ÉCHEC] Modèle {m} ({lang}) : {err_msg[:120]}...", flush=True)
             continue
             
     print(f"❌ [GEMINI ÉCHEC] Aucun modèle n'a pu répondre pour {lang}.", flush=True)
