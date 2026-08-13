@@ -15,7 +15,6 @@ os.environ['TZ'] = 'Europe/Paris'
 if hasattr(time, 'tzset'):
     time.tzset()
 
-# 1. Gestionnaire HTTP pour Render
 class InstantAppHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         if self.path in ['/', '/index.html', '/app.html']:
@@ -37,7 +36,6 @@ def run_http_server():
 
 threading.Thread(target=run_http_server, daemon=True).start()
 
-# 2. Clé API Gemini
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
 if not GEMINI_API_KEY:
@@ -47,15 +45,13 @@ client = genai.Client(api_key=GEMINI_API_KEY)
 current_headline = ""
 
 def fetch_live_news():
-    # Sources resserrées sur le grand public national (RFI et Courrier International retirés)
+    # Remplacement explicite par les flux spécifiques "À LA UNE" des grands médias
     rss_sources = [
-        {"url": "https://www.francetvinfo.fr/titres.rss", "domain": "https://www.francetvinfo.fr"},
-        {"url": "https://www.lefigaro.fr/rss/figaro_flash-actu.xml", "domain": "https://www.lefigaro.fr"},
-        {"url": "https://www.lemonde.fr/en-direct/rss_full.xml", "domain": "https://www.lemonde.fr"},
-        {"url": "https://www.bfmtv.com/rss/info/flux-rss/flux-toutes-les-actualites/", "domain": "https://www.bfmtv.com"},
-        {"url": "https://www.ouest-france.fr/rss-en-continu.xml", "domain": "https://www.ouest-france.fr"},
-        {"url": "https://fr.euronews.com/rss", "domain": "https://fr.euronews.com"},
-        {"url": "https://www.lesechos.fr/rss/rss_une.xml", "domain": "https://www.lesechos.fr"}
+        {"name": "Le Monde", "url": "https://www.lemonde.fr/rss/une.xml", "domain": "https://www.lemonde.fr"},
+        {"name": "Le Figaro", "url": "https://www.lefigaro.fr/rss/figaro_une.xml", "domain": "https://www.lefigaro.fr"},
+        {"name": "France Info", "url": "https://www.francetvinfo.fr/titres.rss", "domain": "https://www.francetvinfo.fr"},
+        {"name": "BFM TV", "url": "https://www.bfmtv.com/rss/info/flux-rss/flux-toutes-les-actualites/", "domain": "https://www.bfmtv.com"},
+        {"name": "Les Echos", "url": "https://www.lesechos.fr/rss/rss_une.xml", "domain": "https://www.lesechos.fr"}
     ]
     
     context = ssl._create_unverified_context()
@@ -71,7 +67,8 @@ def fetch_live_news():
             html = urllib.request.urlopen(req, context=context, timeout=5).read()
             feed = feedparser.parse(html)
             
-            for entry in feed.entries[:6]:
+            # Seuls les 4 premiers articles par source (les plus haut placés en Une)
+            for index, entry in enumerate(feed.entries[:4]):
                 title = entry.title.replace("\n", " ").strip()
                 link = entry.link.strip()
                 
@@ -80,7 +77,9 @@ def fetch_live_news():
                 
                 if title not in seen_titles:
                     seen_titles.add(title)
-                    items.append(f"[{source['domain'].replace('https://www.', '').replace('https://', '')}] TITRE: {title} | LINK: {link}")
+                    # On marque explicitement les 2 premiers articles comme "UNE PRINCIPALE"
+                    badge = "[UNE PRINCIPALE]" if index < 2 else "[UNE SECONDARIE]"
+                    items.append(f"{badge} [{source['name']}] TITRE: {title} | LINK: {link}")
         except Exception:
             continue
                     
@@ -118,7 +117,7 @@ def update_html_file(headline=None, url=None):
 def check_and_update():
     global current_headline
     
-    print(f"[{time.strftime('%H:%M:%S')}] Évaluation éditoriale des dépêches...")
+    print(f"[{time.strftime('%H:%M:%S')}] Évaluation éditoriale des dépêches de Une...")
     news_list = fetch_live_news()
     
     if not news_list:
@@ -127,7 +126,7 @@ def check_and_update():
         return
 
     prompt = f"""
-Voici la liste des dépêches récentes issues de plusieurs médias majeurs :
+Voici la sélection des titres issus de la UNE des grands journaux nationaux français :
 {news_list}
 
 L'information actuellement affichée à l'écran est :
@@ -135,23 +134,19 @@ L'information actuellement affichée à l'écran est :
 
 RÔLE & MISSION :
 Tu es le Rédacteur en Chef d'un média d'urgence nationale ("L'Information Évidente du Moment").
-Ta mission absolue est de sélectionner L'UNE ET UNIQUE grande information nationale ou internationale majeure qui s'impose à tous ce matin/ce jour.
+Ta mission absolue est de choisir L'UNIQUE sujet national ou international majeur qui domine les Unes ce matin/ce jour.
 
-GRILLE DE SELECTION STRICTE (PAR ORDRE DE PRIORITÉ) :
-1. CONSENSUS MULTI-MÉDIAS (CRITÈRE N°1) : Identifie le SUJET RÉCURRENT qui est traité simultanément par plusieurs médias différents dans la liste. C'est le signal absolu de la "Grosse Actu".
-2. IMPACT NATIONAL VS. LOCAL : Privilégie strictement les enjeux nationaux/globaux (ex: crise climatique/sécheresse, politique nationale majeure, urgence internationale, économie globale).
-3. EXCLUSIONS STRICTES : Exclus impérativement :
-   - Les informations régionales ou locales (ex: arrêtés préfectoraux, limitations de vitesse régionales, faits divers locaux, transports locaux).
-   - Les faits divers isolés sans portée nationale.
-   - Les annonces de sorties culturelles, sportives secondaires ou rubriques "art de vivre".
+GRILLE DE PRIORITÉ :
+1. PRIORITÉ AUX ARTICLES PORTANT LE TAG [UNE PRINCIPALE] : Ce sont les sujets placés tout en haut des pages d'accueil nationales.
+2. CONSENSUS MULTI-MÉDIAS : Si un même sujet apparaît chez au moins 2 médias différents (ex: Le Monde ET Le Figaro), il devient PRIORITAIRE SANS CONDITION.
+3. EXCLUSIONS STRICTES : Exclus les arrêtés préfectoraux régionaux, la circulation locale, les faits divers isolés et la culture/sport.
 
-CONSIGNE D'ÉVALUATION DE L'EXISTANT :
-- Si l'information actuellement affichée ("{current_headline}") traite DÉJÀ du sujet majeur identifié dans la liste, réponds strictement "NO_CHANGE".
-- Ne change l'information que si un NOUVEAU sujet d'ampleur supérieure apparaît ou si le sujet majeur n'était pas encore affiché.
+RÈGLES D'ÉVALUATION DE L'EXISTANT :
+- Si l'information actuellement affichée ("{current_headline}") traite DÉJÀ du sujet majeur identifié, réponds strictement "NO_CHANGE".
 
 RÈGLES DE RÉÉCRITURE (SI CHANGEMENT) :
-- Limite stricte : Maximum 75 caractères (espaces compris).
-- Style : Présent de l'indicatif, percutant, factuel, tournure active.
+- Maximum 75 caractères (espaces compris).
+- Style : Présent de l'indicatif, percutant, factuel.
 
 FORMAT STRICT DE RÉPONSE :
 TITRE_REECRIT|||LINK
