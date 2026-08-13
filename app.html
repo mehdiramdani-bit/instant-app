@@ -20,12 +20,37 @@
     header {
       display: flex;
       justify-content: space-between;
+      align-items: center;
       font-size: 0.8rem;
       letter-spacing: 0.1em;
       color: #86868b;
       text-transform: uppercase;
     }
     .brand { font-weight: 700; color: #fff; }
+    
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .lang-picker {
+      display: flex;
+      gap: 6px;
+      font-weight: 600;
+    }
+    .lang-btn {
+      background: none;
+      border: none;
+      color: #424245;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: color 0.2s ease;
+    }
+    .lang-btn.active {
+      color: #ffffff;
+      border-bottom: 1px solid #ffffff;
+    }
+
     main {
       flex: 1;
       display: flex;
@@ -33,6 +58,7 @@
       justify-content: center;
       max-width: 700px;
       margin: 0 auto;
+      width: 100%;
     }
     .headline {
       font-size: clamp(2rem, 5vw, 3.5rem);
@@ -51,6 +77,7 @@
       transition: border-color 0.2s ease;
     }
     .cta:hover { border-color: #fff; }
+
     footer {
       text-align: center;
       font-size: 0.8rem;
@@ -65,22 +92,76 @@
       color: #86868b;
     }
   </style>
+
+  <script id="news-data" type="application/json">
+  {"time": "--:--", "FR": {"headline": "Chargement...", "url": "#"}, "US": {"headline": "Loading...", "url": "#"}}
+  </script>
 </head>
 <body>
 
   <header>
     <span class="brand">INSTANT</span>
-    <span id="time-indicator">Chargement...</span>
+    <div class="header-right">
+      <div class="lang-picker">
+        <button class="lang-btn active" id="btn-fr" onclick="switchLang('FR')">FR</button>
+        <button class="lang-btn" id="btn-us" onclick="switchLang('US')">US</button>
+      </div>
+      <span id="time-indicator">--:--</span>
+    </div>
   </header>
 
   <main>
-    <h1 class="headline" id="headline">Initialisation de l'application...</h1>
+    <h1 class="headline" id="headline">Chargement de l'actualité...</h1>
     <a href="https://news.google.com" id="source-link" class="cta" target="_blank">Voir la source ↗</a>
   </main>
 
   <footer>
-    Une seule info à connaître, toutes les 30 minutes · <a href="https://www.linkedin.com/in/mehdiramdani/" target="_blank">Mehdi Ramdani</a>
+    <span id="footer-text">Une seule info à connaître, toutes les 30 minutes.</span> · 
+    <a href="https://www.linkedin.com/in/mehdiramdani/" target="_blank">Mehdi Ramdani</a>
   </footer>
+
+  <script>
+    let currentLang = localStorage.getItem('instant_lang') || 'FR';
+
+    function renderNews() {
+      try {
+        const rawData = document.getElementById('news-data').textContent;
+        const data = JSON.parse(rawData);
+
+        if (data.time && data.time !== "--:--") {
+          document.getElementById('time-indicator').textContent = `MàJ ${data.time}`;
+        }
+        
+        const item = data[currentLang] || data['FR'];
+        if (item.headline && item.headline !== "Chargement...") {
+          document.getElementById('headline').textContent = item.headline;
+          document.getElementById('source-link').href = item.url;
+        }
+
+        if (currentLang === 'US') {
+          document.getElementById('source-link').textContent = "View source ↗";
+          document.getElementById('footer-text').textContent = "The single story you need to know, every 30 minutes.";
+          document.getElementById('btn-us').classList.add('active');
+          document.getElementById('btn-fr').classList.remove('active');
+        } else {
+          document.getElementById('source-link').textContent = "Voir la source ↗";
+          document.getElementById('footer-text').textContent = "Une seule info à connaître, toutes les 30 minutes.";
+          document.getElementById('btn-fr').classList.add('active');
+          document.getElementById('btn-us').classList.remove('active');
+        }
+      } catch (e) {
+        console.error("Erreur lors de l'affichage :", e);
+      }
+    }
+
+    function switchLang(lang) {
+      currentLang = lang;
+      localStorage.setItem('instant_lang', lang);
+      renderNews();
+    }
+
+    window.onload = renderNews;
+  </script>
 
 </body>
 </html>

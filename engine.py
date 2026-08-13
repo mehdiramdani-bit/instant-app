@@ -5,12 +5,12 @@ import urllib.request
 import feedparser
 import schedule
 import re
+import json
 import threading
 import http.server
 import socketserver
 from google import genai
 
-# Forcer le fuseau horaire de Paris
 os.environ['TZ'] = 'Europe/Paris'
 if hasattr(time, 'tzset'):
     time.tzset()
@@ -37,28 +37,36 @@ def run_http_server():
 threading.Thread(target=run_http_server, daemon=True).start()
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-
 if not GEMINI_API_KEY:
     print("⚠️ ATTENTION : La variable d'environnement GEMINI_API_KEY est introuvable !")
 
 client = genai.Client(api_key=GEMINI_API_KEY)
-current_headline = ""
 
-def fetch_live_news():
-    # Remplacement explicite par les flux spécifiques "À LA UNE" des grands médias
-    rss_sources = [
-        {"name": "Le Monde", "url": "https://www.lemonde.fr/rss/une.xml", "domain": "https://www.lemonde.fr"},
-        {"name": "Le Figaro", "url": "https://www.lefigaro.fr/rss/figaro_une.xml", "domain": "https://www.lefigaro.fr"},
-        {"name": "France Info", "url": "https://www.francetvinfo.fr/titres.rss", "domain": "https://www.francetvinfo.fr"},
-        {"name": "BFM TV", "url": "https://www.bfmtv.com/rss/info/flux-rss/flux-toutes-les-actualites/", "domain": "https://www.bfmtv.com"},
-        {"name": "Les Echos", "url": "https://www.lesechos.fr/rss/rss_une.xml", "domain": "https://www.lesechos.fr"}
-    ]
-    
+current_news = {
+    "FR": {"headline": "", "url": ""},
+    "US": {"headline": "", "url": ""}
+}
+
+SOURCES_FR = [
+    {"name": "Le Monde", "url": "https://www.lemonde.fr/rss/une.xml", "domain": "https://www.lemonde.fr"},
+    {"name": "Le Figaro", "url": "https://www.lefigaro.fr/rss/figaro_une.xml", "domain": "https://www.lefigaro.fr"},
+    {"name": "France Info", "url": "https://www.francetvinfo.fr/titres.rss", "domain": "https://www.francetvinfo.fr"},
+    {"name": "BFM TV", "url": "https://www.bfmtv.com/rss/info/flux-rss/flux-toutes-les-actualites/", "domain": "https://www.bfmtv.com"},
+    {"name": "Les Echos", "url": "https://www.lesechos.fr/rss/rss_une.xml", "domain": "https://www.lesechos.fr"}
+]
+
+SOURCES_US = [
+    {"name": "NY Times", "url": "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml", "domain": "https://www.nytimes.com"},
+    {"name": "BBC US", "url": "http://feeds.bbci.co.uk/news/world/us_and_canada/rss.xml", "domain": "https://www.bbc.com"},
+    {"name": "WSJ", "url": "https://feeds.a.dj.com/rss/WSJNewsPlus.xml", "domain": "https://www.wsj.com"}
+]
+
+def fetch_rss_items(sources):
     context = ssl._create_unverified_context()
     items = []
     seen_titles = set()
 
-    for source in rss_sources:
+    for source in sources:
         try:
             req = urllib.request.Request(
                 source["url"], 
@@ -67,7 +75,6 @@ def fetch_live_news():
             html = urllib.request.urlopen(req, context=context, timeout=5).read()
             feed = feedparser.parse(html)
             
-            # Seuls les 4 premiers articles par source (les plus haut placés en Une)
             for index, entry in enumerate(feed.entries[:4]):
                 title = entry.title.replace("\n", " ").strip()
                 link = entry.link.strip()
@@ -77,8 +84,7 @@ def fetch_live_news():
                 
                 if title not in seen_titles:
                     seen_titles.add(title)
-                    # On marque explicitement les 2 premiers articles comme "UNE PRINCIPALE"
-                    badge = "[UNE PRINCIPALE]" if index < 2 else "[UNE SECONDARIE]"
+                    badge = "[TOP_HEADLINE]" if index < 2 else "[SECONDARY]"
                     items.append(f"{badge} [{source['name']}] TITRE: {title} | LINK: {link}")
         except Exception:
             continue
@@ -91,9 +97,75 @@ def clean_url(raw_url):
         return match.group(0)
     return raw_url.strip()
 
-def update_html_file(headline=None, url=None):
-    heure = time.strftime("%H:%M")
+def evaluate_news(lang, news_list):
+    current_h = current_news[lang]["headline"]
     
+    if lang == "FR":
+        prompt = f"""
+Voici la sélection des titres issus de la UNE des grands journaux nationaux français :
+{news_list}
+
+Information actuelle : "{current_h}"
+
+RÔLE : Rédacteur en Chef d'un média d'urgence ("L'Information Évidente du Moment").
+Mission : Choisir L'UNIQUE sujet national ou international majeur qui domine les Unes aujourd'hui.
+
+CRITÈRES :
+1. PRIORITÉ AUX TAGS [TOP_HEADLINE].
+2. CONSENSUS MULTI-MÉDIAS (sujet apparaissant dans au moins 2 sources).
+3. EXCLUSIONS STRICTES : arrêtés locaux, faits divers régionaux, météo locale, culture/sports.
+
+RÈGLES D'ÉVALUATION :
+- Si l'information actuellement affichée traite DÉJÀ du sujet majeur, réponds "NO_CHANGE".
+- Sinon réécris la nouvelle info : Max 75 caractères, présent de l'indicatif, percutant.
+
+FORMAT DE RÉPONSE :
+TITRE_REECRIT|||LINK
+(ou "NO_CHANGE")
+"""
+    else:
+        prompt = f"""
+Here is the selection of top headlines from major US/International news outlets:
+{news_list}
+
+Current headline displayed: "{current_h}"
+
+ROLE: Editor-in-Chief of a high-urgency news app ("The Essential News Right Now").
+Mission: Pick the SINGLE most critical national or global news story dominating US front pages today.
+
+CRITERIA:
+1. PRIORITY TO [TOP_HEADLINE] tags.
+2. MULTI-MEDIA CONSENSUS (stories reported by 2+ distinct outlets).
+3. STRICT EXCLUSIONS: local crime/accidents, state-level politics, sports, entertainment, opinion pieces.
+
+EVALUATION:
+- If current headline ALREADY covers the dominant story, reply "NO_CHANGE".
+- Otherwise rewrite the new story: Max 75 characters, active voice, present tense, crisp journalistic style.
+
+RESPONSE FORMAT:
+REWRITTEN_HEADLINE|||LINK
+(or "NO_CHANGE")
+"""
+
+    models_to_try = ["gemini-3.6-flash", "gemini-3.5-flash"]
+    for m in models_to_try:
+        try:
+            res = client.models.generate_content(model=m, contents=prompt)
+            if res and res.text:
+                return res.text.strip()
+        except Exception:
+            continue
+    return "NO_CHANGE"
+
+def update_html_files():
+    time_str = time.strftime("%H:%M")
+    
+    json_payload = json.dumps({
+        "time": time_str,
+        "FR": current_news["FR"],
+        "US": current_news["US"]
+    }, ensure_ascii=False)
+
     for filename in ["app.html", "index.html"]:
         if not os.path.exists(filename):
             continue
@@ -101,95 +173,35 @@ def update_html_file(headline=None, url=None):
             with open(filename, "r", encoding="utf-8") as f:
                 content = f.read()
 
-            if headline:
-                content = re.sub(r'id="headline">.*?</h1>', f'id="headline">{headline}</h1>', content)
-            if url:
-                content = re.sub(r'href="[^"]*"\s+id="source-link"', f'href="{url}" id="source-link"', content)
-                content = re.sub(r'id="source-link"\s+href="[^"]*"', f'id="source-link" href="{url}"', content)
+            new_content = re.sub(
+                r'id="news-data"[^>]*>.*?</script>',
+                f'id="news-data" type="application/json">{json_payload}</script>',
+                content,
+                flags=re.DOTALL
+            )
             
-            content = re.sub(r'id="time-indicator">.*?</span>', f'id="time-indicator">MàJ {heure}</span>', content)
-
             with open(filename, "w", encoding="utf-8") as f:
-                f.write(content)
+                f.write(new_content)
         except Exception as e:
-            print(f"--> Erreur lors de la mise à jour de {filename} : {e}")
+            print(f"--> Erreur mise à jour HTML ({filename}) : {e}")
 
 def check_and_update():
-    global current_headline
+    print(f"[{time.strftime('%H:%M:%S')}] --- ÉVALUATION FR/US ---")
     
-    print(f"[{time.strftime('%H:%M:%S')}] Évaluation éditoriale des dépêches de Une...")
-    news_list = fetch_live_news()
-    
-    if not news_list:
-        print("--> Échec : Impossible d'obtenir les flux RSS.\n")
-        update_html_file()
-        return
+    news_fr = fetch_rss_items(SOURCES_FR)
+    res_fr = evaluate_news("FR", news_fr)
+    if res_fr != "NO_CHANGE" and "|||" in res_fr:
+        h, u = res_fr.split("|||", 1)
+        current_news["FR"] = {"headline": h.strip(), "url": clean_url(u)}
 
-    prompt = f"""
-Voici la sélection des titres issus de la UNE des grands journaux nationaux français :
-{news_list}
+    news_us = fetch_rss_items(SOURCES_US)
+    res_us = evaluate_news("US", news_us)
+    if res_us != "NO_CHANGE" and "|||" in res_us:
+        h, u = res_us.split("|||", 1)
+        current_news["US"] = {"headline": h.strip(), "url": clean_url(u)}
 
-L'information actuellement affichée à l'écran est :
-"{current_headline}"
-
-RÔLE & MISSION :
-Tu es le Rédacteur en Chef d'un média d'urgence nationale ("L'Information Évidente du Moment").
-Ta mission absolue est de choisir L'UNIQUE sujet national ou international majeur qui domine les Unes ce matin/ce jour.
-
-GRILLE DE PRIORITÉ :
-1. PRIORITÉ AUX ARTICLES PORTANT LE TAG [UNE PRINCIPALE] : Ce sont les sujets placés tout en haut des pages d'accueil nationales.
-2. CONSENSUS MULTI-MÉDIAS : Si un même sujet apparaît chez au moins 2 médias différents (ex: Le Monde ET Le Figaro), il devient PRIORITAIRE SANS CONDITION.
-3. EXCLUSIONS STRICTES : Exclus les arrêtés préfectoraux régionaux, la circulation locale, les faits divers isolés et la culture/sport.
-
-RÈGLES D'ÉVALUATION DE L'EXISTANT :
-- Si l'information actuellement affichée ("{current_headline}") traite DÉJÀ du sujet majeur identifié, réponds strictement "NO_CHANGE".
-
-RÈGLES DE RÉÉCRITURE (SI CHANGEMENT) :
-- Maximum 75 caractères (espaces compris).
-- Style : Présent de l'indicatif, percutant, factuel.
-
-FORMAT STRICT DE RÉPONSE :
-TITRE_REECRIT|||LINK
-(ou uniquement la chaîne "NO_CHANGE" si aucun changement)
-"""
-
-    models_to_try = ["gemini-3.6-flash", "gemini-3.5-flash"]
-    response = None
-
-    for m in models_to_try:
-        try:
-            res = client.models.generate_content(
-                model=m,
-                contents=prompt
-            )
-            if res and res.text:
-                response = res
-                print(f"--> Requête réussie via : {m}")
-                break
-        except Exception as err:
-            print(f"--> Échec sur {m} : {err}")
-            continue
-
-    if not response or not response.text:
-        print("--> Erreur : Aucun modèle Gemini n'a répondu.\n")
-        update_html_file()
-        return
-
-    result = response.text.strip()
-
-    if result != "NO_CHANGE" and "|||" in result:
-        headline, raw_link = result.split("|||", 1)
-        
-        headline_clean = headline.replace("TITRE_REECRIT:", "").replace("TITRE:", "").strip()
-        url_clean = clean_url(raw_link)
-        
-        current_headline = headline_clean
-        update_html_file(current_headline, url_clean)
-        print(f"--> NOUVEL INSTANT PUBLIÉ ({len(current_headline)} car.) : {current_headline}")
-        print(f"--> LIEN SOURCE : {url_clean}\n")
-    else:
-        update_html_file()
-        print(f"--> Pas de changement d'actu. Horodatage mis à jour à {time.strftime('%H:%M')}.\n")
+    update_html_files()
+    print("--> Mise à jour FR/US terminée.\n")
 
 if os.path.exists("app.html") and not os.path.exists("index.html"):
     with open("app.html", "r", encoding="utf-8") as f_in:
@@ -201,7 +213,7 @@ check_and_update()
 schedule.every().hour.at(":00").do(check_and_update)
 schedule.every().hour.at(":30").do(check_and_update)
 
-print("--> Moteur actif. Prochains cycles programmés à :00 et :30 de chaque heure.\n")
+print("--> Moteur FR/US prêt.\n")
 
 while True:
     schedule.run_pending()
