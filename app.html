@@ -1,9 +1,9 @@
-cat << 'EOF' > ~/Desktop/instant-app/app.html
 <!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Recharge la page automatiquement toutes les 30 secondes -->
   <meta http-equiv="refresh" content="30">
   <title>Instant</title>
   <style>
@@ -57,10 +57,6 @@ cat << 'EOF' > ~/Desktop/instant-app/app.html
       font-size: 0.8rem;
       color: #424245;
     }
-    footer a {
-      color: #86868b;
-      text-decoration: underline;
-    }
   </style>
 </head>
 <body>
@@ -82,7 +78,3 @@ cat << 'EOF' > ~/Desktop/instant-app/app.html
 
 </body>
 </html>
-EOF
-
-cp ~/Desktop/instant-app/app.html ~/Desktop/instant-app/index.html
-cd ~/Desktop/instant-app && git add . && git commit -m "Add LinkedIn footer" && git push
