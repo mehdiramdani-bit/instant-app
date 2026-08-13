@@ -126,7 +126,6 @@ RÈGLES D'ÉVALUATION :
 
 FORMAT DE RÉPONSE :
 TITRE_REECRIT|||LINK
-(ou "NO_CHANGE")
 """
     else:
         prompt = f"""
@@ -145,12 +144,11 @@ CRITERIA:
 4. STRICT EXCLUSIONS: local crime/accidents, state-level politics, sports, entertainment, opinion pieces.
 
 EVALUATION:
-- If current headline ALREADY covers the dominant story, reply "NO_CHANGE".
+- If current headline ALREADY covers the dominant story AND current headline is NOT empty, reply "NO_CHANGE".
 - Otherwise rewrite the new story: Max 75 characters, active voice, present tense, crisp journalistic style.
 
 RESPONSE FORMAT:
 REWRITTEN_HEADLINE|||LINK
-(or "NO_CHANGE")
 """
 
     models_to_try = ["gemini-3.6-flash", "gemini-3.5-flash"]
@@ -214,7 +212,6 @@ if os.path.exists("app.html") and not os.path.exists("index.html"):
         with open("index.html", "w", encoding="utf-8") as f_out:
             f_out.write(f_in.read())
 
-# Lancement immédiat au démarrage pour forcer l'actualisation
 check_and_update()
 
 schedule.every().hour.at(":00").do(check_and_update)
