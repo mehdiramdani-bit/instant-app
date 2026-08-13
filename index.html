@@ -123,20 +123,36 @@
   <script>
     let currentLang = localStorage.getItem('instant_lang') || 'FR';
 
+    function getFormattedTime(timeStr, lang) {
+      if (!timeStr || timeStr === "--:--") return "--:--";
+      
+      // Convertir HH:MM en heure locale du visiteur
+      const parts = timeStr.split(':');
+      if (parts.length === 2) {
+        const now = new Date();
+        now.setHours(parseInt(parts[0], 10));
+        now.setMinutes(parseInt(parts[1], 10));
+
+        if (lang === 'US') {
+          // Format heure locale US (ex: UPDATED 2:30 PM ou 14:30 selon paramètres système)
+          const localTime = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+          return `UPDATED ${localTime}`;
+        } else {
+          // Format heure locale FR (ex: MÀJ 14:30)
+          const localTime = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', hour12: false });
+          return `MÀJ ${localTime}`;
+        }
+      }
+      return lang === 'US' ? `UPDATED ${timeStr}` : `MÀJ ${timeStr}`;
+    }
+
     function renderNews() {
       try {
         const rawData = document.getElementById('news-data').textContent;
         const data = JSON.parse(rawData);
 
-        if (data.time && data.time !== "--:--") {
-          document.getElementById('time-indicator').textContent = `MàJ ${data.time}`;
-        }
-        
-        const item = data[currentLang] || data['FR'];
-        if (item.headline && item.headline !== "Chargement...") {
-          document.getElementById('headline').textContent = item.headline;
-          document.getElementById('source-link').href = item.url;
-        }
+        // Mise à jour de l'indicateur d'heure selon la langue et le fuseau local
+        document.getElementById('time-indicator').textContent = getFormattedTime(data.time, currentLang);
 
         if (currentLang === 'US') {
           document.getElementById('source-link').textContent = "View source ↗";
@@ -148,6 +164,12 @@
           document.getElementById('footer-text').textContent = "Une seule info à connaître, toutes les 30 minutes.";
           document.getElementById('btn-fr').classList.add('active');
           document.getElementById('btn-us').classList.remove('active');
+        }
+
+        const item = data[currentLang] || data['FR'];
+        if (item && item.headline && item.headline !== "Chargement..." && item.headline !== "Loading...") {
+          document.getElementById('headline').textContent = item.headline;
+          document.getElementById('source-link').href = item.url;
         }
       } catch (e) {
         console.error("Erreur lors de l'affichage :", e);
