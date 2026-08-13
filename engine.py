@@ -11,6 +11,7 @@ import http.server
 import socketserver
 from google import genai
 
+# Forcer le fuseau horaire de Paris
 os.environ['TZ'] = 'Europe/Paris'
 if hasattr(time, 'tzset'):
     time.tzset()
@@ -55,9 +56,12 @@ SOURCES_FR = [
     {"name": "Les Echos", "url": "https://www.lesechos.fr/rss/rss_une.xml", "domain": "https://www.lesechos.fr"}
 ]
 
+# Sources 100% axées sur l'actualité US (AP, NYT, NPR, CNN, WSJ)
 SOURCES_US = [
+    {"name": "AP News", "url": "https://feedx.net/rss/ap.xml", "domain": "https://apnews.com"},
     {"name": "NY Times", "url": "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml", "domain": "https://www.nytimes.com"},
-    {"name": "BBC US", "url": "http://feeds.bbci.co.uk/news/world/us_and_canada/rss.xml", "domain": "https://www.bbc.com"},
+    {"name": "NPR", "url": "https://feeds.npr.org/1001/rss.xml", "domain": "https://www.npr.org"},
+    {"name": "CNN", "url": "http://rss.cnn.com/rss/cnn_topstories.rss", "domain": "https://www.cnn.com"},
     {"name": "WSJ", "url": "https://feeds.a.dj.com/rss/WSJNewsPlus.xml", "domain": "https://www.wsj.com"}
 ]
 
@@ -125,7 +129,7 @@ TITRE_REECRIT|||LINK
 """
     else:
         prompt = f"""
-Here is the selection of top headlines from major US/International news outlets:
+Here is the selection of top headlines from major US news outlets:
 {news_list}
 
 Current headline displayed: "{current_h}"
@@ -135,7 +139,7 @@ Mission: Pick the SINGLE most critical national or global news story dominating 
 
 CRITERIA:
 1. PRIORITY TO [TOP_HEADLINE] tags.
-2. MULTI-MEDIA CONSENSUS (stories reported by 2+ distinct outlets).
+2. MULTI-MEDIA CONSENSUS (stories reported by 2+ distinct US outlets).
 3. STRICT EXCLUSIONS: local crime/accidents, state-level politics, sports, entertainment, opinion pieces.
 
 EVALUATION:
@@ -213,7 +217,7 @@ check_and_update()
 schedule.every().hour.at(":00").do(check_and_update)
 schedule.every().hour.at(":30").do(check_and_update)
 
-print("--> Moteur FR/US prêt.\n")
+print("--> Moteur US 100% américain prêt.\n")
 
 while True:
     schedule.run_pending()
