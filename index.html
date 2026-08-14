@@ -240,6 +240,7 @@
   </main>
 
   <footer>
+    <div id="footer-tagline">La seule info qui compte en ce moment.</div>
     <div id="update-time">--:--</div>
   </footer>
 
@@ -301,6 +302,7 @@
       document.getElementById('btn-fr').classList.toggle('active', currentLang === 'FR');
       document.getElementById('btn-us').classList.toggle('active', currentLang === 'US');
       document.getElementById('source-label').textContent = (currentLang === 'FR') ? 'Voir la source' : 'Read source';
+      document.getElementById('footer-tagline').textContent = (currentLang === 'FR') ? 'La seule info qui compte en ce moment.' : 'The only news that matters right now.';
     }
 
     function openModal() {
