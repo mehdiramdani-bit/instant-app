@@ -14,28 +14,29 @@ os.environ['TZ'] = 'Europe/Paris'
 if hasattr(time, 'tzset'):
     time.tzset()
 
-print("--> [START] Moteur Instant démarré", flush=True)
+print("--> [START] Moteur Instant démarré (Flux RSS corrigés)", flush=True)
 
 current_news = {
     "FR": {"headline": "Analyse Gemini en cours...", "url": "https://news.google.fr"},
     "US": {"headline": "Gemini analysis in progress...", "url": "https://news.google.com"}
 }
 
-# --- SOURCES RSS MISES À JOUR ---
+# Sources FR (Flux vérifiés et ouverts)
 SOURCES_FR = [
     {"name": "Le Monde", "url": "https://www.lemonde.fr/rss/une.xml", "domain": "https://www.lemonde.fr"},
     {"name": "Le Figaro", "url": "https://www.lefigaro.fr/rss/figaro_une.xml", "domain": "https://www.lefigaro.fr"},
-    {"name": "Le Parisien", "url": "https://www.leparisien.fr/arc/outboundfeeds/rss/category/actualites-du-jour/?outputType=xml", "domain": "https://www.leparisien.fr"},
+    {"name": "20 Minutes", "url": "https://www.20minutes.fr/feeds/rss-une.xml", "domain": "https://www.20minutes.fr"},
     {"name": "France Info", "url": "https://www.francetvinfo.fr/titres.rss", "domain": "https://www.francetvinfo.fr"},
-    {"name": "BFM TV", "url": "https://www.bfmtv.com/rss/info/flux-rss/flux-une/", "domain": "https://www.bfmtv.com"}
+    {"name": "BFM TV", "url": "https://www.bfmtv.com/rss/info/flux-rss/flux-toutes-les-actualites/", "domain": "https://www.bfmtv.com"}
 ]
 
+# Sources US (Flux vérifiés et ouverts)
 SOURCES_US = [
     {"name": "NY Times", "url": "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml", "domain": "https://www.nytimes.com"},
     {"name": "Washington Post", "url": "https://feeds.washingtonpost.com/rss/national", "domain": "https://www.washingtonpost.com"},
     {"name": "AP News", "url": "https://feedx.net/rss/ap.xml", "domain": "https://apnews.com"},
     {"name": "NPR News", "url": "https://feeds.npr.org/1001/rss.xml", "domain": "https://www.npr.org"},
-    {"name": "CBS News", "url": "https://www.cbsnews.com/rss/ftag/main/", "domain": "https://www.cbsnews.com"}
+    {"name": "CBS News", "url": "https://www.cbsnews.com/latest/rss/main", "domain": "https://www.cbsnews.com"}
 ]
 
 def fetch_rss_items(sources):
@@ -87,7 +88,6 @@ def evaluate_news(lang, news_list):
 
     current_h = current_news[lang]["headline"]
     
-    # --- PROMPTS AJUSTÉS (COHÉRENCE NATIONALE VS. INTERNATIONALE) ---
     if lang == "FR":
         prompt = f"""
 Voici la sélection des titres issus de la UNE des grands journaux nationaux français :
