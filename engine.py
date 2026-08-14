@@ -14,7 +14,7 @@ os.environ['TZ'] = 'Europe/Paris'
 if hasattr(time, 'tzset'):
     time.tzset()
 
-print("--> [START] Moteur Instant démarré (Style Dépêche optimisé)", flush=True)
+print("--> [START] Moteur Instant démarré (Typographie & Préservation Acronymes)", flush=True)
 
 current_news = {
     "FR": {"headline": "Analyse Gemini en cours...", "url": "https://news.google.fr"},
@@ -37,6 +37,16 @@ SOURCES_US = [
     {"name": "CBS News", "url": "https://www.cbsnews.com/latest/rss/main", "domain": "https://www.cbsnews.com"}
 ]
 
+COMMON_ACRONYMS = {
+    "US", "USA", "UE", "EU", "ONU", "UN", "OTAN", "NATO", "IA", "AI",
+    "GOP", "FBI", "CIA", "NSA", "DOJ", "DOGE", "SEC", "FDA", "CDC", "EPA", "FAA",
+    "SNCF", "RATP", "EDF", "RN", "LFI", "PS", "LR", "EELV", "NFP", "PCF", "LREM",
+    "CDI", "CDD", "PIB", "GDP", "TVA", "VAT", "CAC40", "CAC", "BCE", "FED", "FMI", "IMF",
+    "OMS", "WHO", "OMC", "WTO", "JO", "OG", "IVG", "PMA", "PPR", "ZFE", "PASS",
+    "PDG", "CEO", "CFO", "CTO", "COO", "DRH", "RH", "HR", "VIP", "TV", "BD",
+    "COVID", "G7", "G20", "COP", "COP28", "COP29", "COP30", "LLM", "API", "RSS"
+}
+
 def fetch_rss_items(sources):
     context = ssl._create_unverified_context()
     items = []
@@ -48,7 +58,7 @@ def fetch_rss_items(sources):
                 source["url"], 
                 headers={'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'}
             )
-            html = urllib.request.urlopen(req, context=context, timeout=5).read()
+            html = urllib.request.urlopen(req, context=context, timeout=8).read()
             feed = feedparser.parse(html)
             
             for index, entry in enumerate(feed.entries[:4]):
@@ -71,47 +81,96 @@ def clean_url(raw_url):
     match = re.search(r'https?://[^\s"\'<>]+', raw_url)
     return match.group(0) if match else raw_url.strip()
 
+def sanitize_headline(text):
+    text = text.strip().strip('"').strip("'")
+    text = text.replace("'", "’")
+
+    words = text.split()
+    is_mostly_upper = False
+    letters = [c for c in text if c.isalpha()]
+    if letters:
+        upper_ratio = sum(1 for c in letters if c.isupper()) / len(letters)
+        if upper_ratio > 0.6:
+            is_mostly_upper = True
+
+    if is_mostly_upper:
+        new_words = []
+        for w in words:
+            clean_w = re.sub(r'[^\w]', '', w).upper()
+            if clean_w in COMMON_ACRONYMS or re.match(r'^(?:[A-Z]\.){2,}$', w):
+                new_words.append(w.upper())
+            else:
+                new_words.append(w.lower())
+        text = " ".join(new_words)
+        if len(text) > 0:
+            text = text[0].upper() + text[1:]
+    else:
+        new_words = []
+        for w in words:
+            clean_w = re.sub(r'[^\w]', '', w).upper()
+            if clean_w in COMMON_ACRONYMS:
+                new_words.append(re.sub(r'\b' + clean_w + r'\b', clean_w, w, flags=re.IGNORECASE))
+            else:
+                new_words.append(w)
+        text = " ".join(new_words)
+
+    # Minuscule après deux-points sauf si c'est un acronyme
+    def fix_colon(match):
+        prefix, char, rest = match.group(1), match.group(2), match.group(3)
+        word = char + rest
+        clean_word = re.sub(r'[^\w]', '', word).upper()
+        if clean_word in COMMON_ACRONYMS:
+            return prefix + word.upper()
+        return prefix + char.lower() + rest
+
+    text = re.sub(r'(:\s+)([A-ZÀ-Ý])([a-zA-ZÀ-ÿ]*)', fix_colon, text)
+    return text
+
 def evaluate_news(lang, news_list):
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
-        print("❌ [GEMINI STRICT] Clé API introuvable.", flush=True)
+        print("❌ [GEMINI] Clé API introuvable.", flush=True)
         return None
 
     try:
         from google import genai
         client = genai.Client(api_key=api_key)
     except Exception as e:
-        print(f"❌ [GEMINI STRICT] Échec import SDK: {e}", flush=True)
+        print(f"❌ [GEMINI] Échec import SDK: {e}", flush=True)
         return None
 
     current_h = current_news[lang]["headline"]
     
     if lang == "FR":
         prompt = f"""
-Voici la sélection des titres issus de la UNE des grands journaux nationaux français :
+Voici la sélection des titres de la UNE des grands journaux français :
 {news_list}
 
 Information actuellement affichée : "{current_h}"
 
 RÔLE : Rédacteur en Chef d'un média d'urgence en France ("L'Information Évidence du Moment").
-MISSION : Sélectionner l'actualité dominante avec une FORTE PRIORITÉ NATIONALE et rédiger un titre incisif.
+MISSION : Sélectionner l'actualité dominante avec une FORTE PRIORITÉ NATIONALE et rédiger un titre percutant.
 
 HIÉRARCHIE D'ARBITRAGE :
-1. PRIORITÉ NATIONALE : Privilégie les événements qui impactent directement la France, les citoyens ou la vie politique/économique nationale.
-2. FILTRE INTERNATIONAL STRICT : Ne choisis un sujet international QUE s'il s'agit d'une rupture historique majeure ou d'un événement d'une gravité exceptionnelle. Évite les développements de routine de crises lointaines.
+1. PRIORITÉ NATIONALE : Événements majeurs impactant la France.
+2. FILTRE INTERNATIONAL STRICT : Uniquement rupture historique majeure ou gravité exceptionnelle.
 3. CONSENSUS : Présent dans au moins 2 sources.
 
-CONSIGNES DE STYLE ET DE FORME :
-- Limite : 80 caractères maximum (espaces compris).
-- Style dépêche naturel : Privilégie la voix active OU le style nominal/participe direct (ex: "474 personnes interpellées..." au lieu de "474 personnes sont interpellées...").
-- Évite les tournures passives lourdes avec l'auxiliaire être ("est voté", "sont annoncés"). Sois percutant et fluide.
+RÈGLES DE TYPOGRAPHIE ET DE CASSE (OBLIGATOIRES) :
+- Longueur : 80 caractères maximum.
+- CASSE DE PHRASE : Majuscule au début et aux noms propres. Tout le reste en minuscules.
+- CONSERVE EN MAJUSCULES les sigles et acronymes légitimes (ex: RN, LFI, SNCF, UE, ONU, IA, PIB, OTAN, etc.).
+- PAS DE TOUT EN MAJUSCULES pour les mots ordinaires.
+- PAS DE MAJUSCULE À CHAQUE MOT.
+- PAS DE MAJUSCULE APRÈS LES DEUX-POINTS (sauf si c'est un acronyme ou nom propre).
+- Utilise l'apostrophe typographique courbe (’).
 
-FORMAT DE RÉPONSE EXIGÉ :
+FORMAT EXIGÉ :
 TITRE_REECRIT|||LINK
 """
     else:
         prompt = f"""
-Here is the selection of top headlines from major domestic US news outlets:
+Here is the selection of top headlines from major US news outlets:
 {news_list}
 
 Current headline displayed: "{current_h}"
@@ -120,21 +179,23 @@ ROLE: Editor-in-Chief of a high-urgency US news app ("The Essential News Right N
 MISSION: Select the dominant news story with a STRONG DOMESTIC NATIONAL PRIORITY and craft a sharp headline.
 
 HIERARCHY RULES:
-1. DOMESTIC PRIORITY: Strong preference for major stories directly impacting the US (federal government, economy, critical national events).
-2. STRICT INTERNATIONAL FILTER: Only select foreign news if it represents a major global breaking event or directly threatens national security. Avoid incremental foreign updates.
-3. CONSENSUS: Must be confirmed by at least 2 major outlets.
+1. DOMESTIC PRIORITY: Major stories directly impacting the US.
+2. STRICT INTERNATIONAL FILTER: Major global events only.
+3. CONSENSUS: Confirmed by at least 2 major outlets.
 
-STYLE RULES:
-- Limit: 80 characters maximum (including spaces).
-- Wire style: Use active voice OR concise participial/noun phrase (e.g., "474 people arrested..." rather than "474 people are arrested...").
-- Avoid clumsy passive voice with "is/are". Keep it natural, sharp, and impactful.
+STRICT TYPOGRAPHY RULES (MANDATORY):
+- Limit: 80 characters max.
+- SENTENCE CASE ONLY: Capital letter only for the first word and proper nouns.
+- PRESERVE IN ALL CAPS legitimate acronyms and initialisms (e.g. US, USA, EU, UN, FBI, CIA, NATO, AI, GDP, etc.).
+- NO ALL CAPS for regular words.
+- NO Title Case.
+- Use curly apostrophes (’).
 
-REQUIRED RESPONSE FORMAT:
+REQUIRED FORMAT:
 REWRITTEN_HEADLINE|||LINK
 """
 
     preferred_models = ["gemini-3.6-flash", "gemini-3.5-flash"]
-    
     available_models = []
     try:
         for m in client.models.list():
@@ -150,21 +211,16 @@ REWRITTEN_HEADLINE|||LINK
         try:
             res = client.models.generate_content(model=m, contents=prompt)
             if res and res.text and "|||" in res.text:
-                print(f"✅ [GEMINI VALIDÉ] Modèle {m} a généré la synthèse ({lang})", flush=True)
+                print(f"✅ [GEMINI] Modèle {m} ({lang})", flush=True)
                 return res.text.strip()
         except Exception as e:
-            err_msg = str(e)
-            print(f"⚠️ [GEMINI ÉCHEC] Modèle {m} ({lang}) : {err_msg[:100]}...", flush=True)
             continue
             
-    print(f"❌ [GEMINI ÉCHEC] Aucun modèle n'a pu répondre pour {lang}.", flush=True)
+    print(f"❌ [GEMINI] Aucun modèle n'a répondu pour {lang}.", flush=True)
     return None
 
 def update_html_files():
-    time_str = time.strftime("%H:%M")
-    
     json_payload = json.dumps({
-        "time": time_str,
         "FR": current_news["FR"],
         "US": current_news["US"]
     }, ensure_ascii=False)
@@ -183,7 +239,7 @@ def update_html_files():
             
             with open(filename, "w", encoding="utf-8") as f:
                 f.write(new_content)
-            print(f"--> [HTML OK] {filename} mis à jour à {time_str}", flush=True)
+            print(f"--> [HTML OK] {filename} mis à jour", flush=True)
         except Exception as e:
             print(f"⚠️ [HTML ERR] {filename} : {e}", flush=True)
 
@@ -196,7 +252,7 @@ def check_and_update():
         res_fr = evaluate_news("FR", news_fr)
         if res_fr and "|||" in res_fr:
             h, u = res_fr.split("|||", 1)
-            current_news["FR"] = {"headline": h.strip(), "url": clean_url(u)}
+            current_news["FR"] = {"headline": sanitize_headline(h), "url": clean_url(u)}
     except Exception as e:
         print(f"⚠️ Erreur FR : {e}", flush=True)
 
@@ -206,7 +262,7 @@ def check_and_update():
         res_us = evaluate_news("US", news_us)
         if res_us and "|||" in res_us:
             h, u = res_us.split("|||", 1)
-            current_news["US"] = {"headline": h.strip(), "url": clean_url(u)}
+            current_news["US"] = {"headline": sanitize_headline(h), "url": clean_url(u)}
     except Exception as e:
         print(f"⚠️ Erreur US : {e}", flush=True)
 
