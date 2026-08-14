@@ -152,5 +152,20 @@
     window.onload = renderNews;
   </script>
 
+
+<script>
+  // Rafraîchissement automatique au réveil sur iOS (PWA / Raccourci)
+  document.addEventListener("visibilitychange", function() {
+    if (document.visibilityState === "visible") {
+      window.location.reload(true);
+    }
+  });
+  window.addEventListener("pageshow", function(e) {
+    if (e.persisted) {
+      window.location.reload(true);
+    }
+  });
+</script>
+
 </body>
 </html>
