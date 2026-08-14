@@ -144,78 +144,52 @@
       text-align: center;
     }
 
-    /* MODAL A PROPOS (Design Affiné) */
+    /* MODAL A PROPOS (Ultra-Clean & Symétrique) */
     .modal-overlay {
       display: none;
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0, 0, 0, 0.6);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
       z-index: 9999;
       align-items: center;
       justify-content: center;
-      padding: 24px;
-      opacity: 0;
-      transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      padding: 20px;
+      cursor: pointer;
     }
     .modal-overlay.active {
       display: flex;
-      opacity: 1;
     }
     .modal-card {
-      background: rgba(24, 24, 26, 0.95);
+      background: rgba(22, 22, 24, 0.98);
       color: #FFFFFF;
       border-radius: 22px;
-      padding: 32px 28px;
-      max-width: 310px;
+      padding: 26px 28px 24px;
+      max-width: 320px;
       width: 100%;
       position: relative;
       text-align: center;
-      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      transform: scale(0.96);
-      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .modal-overlay.active .modal-card {
-      transform: scale(1);
-    }
-    .modal-close {
-      position: absolute;
-      top: 14px;
-      right: 14px;
-      background: rgba(255, 255, 255, 0.06);
-      border: none;
-      width: 26px;
-      height: 26px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1rem;
-      color: #8E8E93;
-      cursor: pointer;
-      line-height: 1;
-      transition: all 0.2s ease;
-    }
-    .modal-close:hover {
-      background: rgba(255, 255, 255, 0.12);
-      color: #FFFFFF;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      cursor: default;
     }
     .modal-role {
-      font-size: 0.72rem;
+      font-size: 0.68rem;
       font-weight: 600;
       color: #8E8E93;
-      margin-bottom: 8px;
+      margin: 0 0 6px 0;
       text-transform: uppercase;
-      letter-spacing: 0.1em;
+      letter-spacing: 0.08em;
+      line-height: 1.2;
     }
     .modal-author {
-      font-size: 1.3rem;
+      font-size: 1.25rem;
       font-weight: 600;
-      margin-bottom: 22px;
+      margin: 0 0 18px 0;
       letter-spacing: -0.02em;
       color: #FFFFFF;
+      line-height: 1.2;
     }
     .modal-links {
       display: flex;
@@ -226,24 +200,21 @@
     .modal-links a {
       color: #E5E5E7;
       text-decoration: none;
-      font-size: 0.88rem;
+      font-size: 0.85rem;
       font-weight: 500;
-      padding: 6px 14px;
+      padding: 7px 15px;
       border-radius: 20px;
       background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       transition: all 0.2s ease;
       display: inline-flex;
       align-items: center;
       gap: 4px;
     }
     .modal-links a:hover {
-      background: rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.14);
       color: #FFFFFF;
-      border-color: rgba(255, 255, 255, 0.15);
-    }
-    .modal-sep {
-      display: none;
+      border-color: rgba(255, 255, 255, 0.18);
     }
   </style>
 </head>
@@ -277,28 +248,26 @@
   </footer>
 
   <!-- Modal A Propos -->
-  <div id="info-modal" class="modal-overlay" onclick="closeModal(event)">
+  <div id="info-modal" class="modal-overlay" onclick="closeModal()">
     <div class="modal-card" onclick="event.stopPropagation()">
-      <button class="modal-close" onclick="closeModal()">×</button>
       <div id="modal-content-fr">
-        <p class="modal-role">Conception & développement :</p>
+        <p class="modal-role">Conception & développement</p>
         <p class="modal-author">Mehdi Ramdani</p>
         <div class="modal-links">
           <a href="https://www.linkedin.com/in/mehdiramdani/" target="_blank" rel="noopener noreferrer">LinkedIn ↗</a>
-          <span class="modal-sep">•</span>
           <a href="https://github.com/mehdiramdani-bit" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
         </div>
       </div>
       <div id="modal-content-us" style="display: none;">
-        <p class="modal-role">Design & Development:</p>
+        <p class="modal-role">Design & Development</p>
         <p class="modal-author">Mehdi Ramdani</p>
         <div class="modal-links">
           <a href="https://www.linkedin.com/in/mehdiramdani/" target="_blank" rel="noopener noreferrer">LinkedIn ↗</a>
-          <span class="modal-sep">•</span>
           <a href="https://github.com/mehdiramdani-bit" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
         </div>
       </div>
     </div>
+  </div>
   </div>
 
   <script>
