@@ -14,7 +14,7 @@ os.environ['TZ'] = 'Europe/Paris'
 if hasattr(time, 'tzset'):
     time.tzset()
 
-print("--> [START] Moteur Instant démarré (Typographie & Préservation Acronymes)", flush=True)
+print("--> [START] Moteur Instant démarré (Parsing & Typographie Robustes)", flush=True)
 
 current_news = {
     "FR": {"headline": "Analyse Gemini en cours...", "url": "https://news.google.fr"},
@@ -39,7 +39,7 @@ SOURCES_US = [
 
 COMMON_ACRONYMS = {
     "US", "USA", "UE", "EU", "ONU", "UN", "OTAN", "NATO", "IA", "AI",
-    "GOP", "FBI", "CIA", "NSA", "DOJ", "DOGE", "SEC", "FDA", "CDC", "EPA", "FAA",
+    "GOP", "FBI", "CIA", "NSA", "DOJ", "DOGE", "SEC", "FDA", "CDC", "EPA", "FAA", "USS",
     "SNCF", "RATP", "EDF", "RN", "LFI", "PS", "LR", "EELV", "NFP", "PCF", "LREM",
     "CDI", "CDD", "PIB", "GDP", "TVA", "VAT", "CAC40", "CAC", "BCE", "FED", "FMI", "IMF",
     "OMS", "WHO", "OMC", "WTO", "JO", "OG", "IVG", "PMA", "PPR", "ZFE", "PASS",
@@ -83,38 +83,41 @@ def clean_url(raw_url):
 
 def sanitize_headline(text):
     text = text.strip().strip('"').strip("'")
+
+    # 1. Éliminer les traces parasites de prompts (REWRITTEN_HEADLINE, TITRE_REECRIT, HEADLINE:, etc.)
+    text = re.sub(r'(?i)\b(?:REWRITTEN_HEADLINE|TITRE_REECRIT|HEADLINE|TITRE)\b[\s:]*', '', text)
+    text = text.replace("|||", "").strip()
+
+    # 2. Apostrophe typographique courbe
     text = text.replace("'", "’")
 
+    # 3. Détection du Tout Majuscules (> 55% de lettres en majuscules)
     words = text.split()
-    is_mostly_upper = False
     letters = [c for c in text if c.isalpha()]
     if letters:
         upper_ratio = sum(1 for c in letters if c.isupper()) / len(letters)
-        if upper_ratio > 0.6:
-            is_mostly_upper = True
+        if upper_ratio > 0.55:
+            new_words = []
+            for w in words:
+                clean_w = re.sub(r'[^\w]', '', w).upper()
+                if clean_w in COMMON_ACRONYMS or re.match(r'^(?:[A-Z]\.){2,}$', w):
+                    new_words.append(w.upper())
+                else:
+                    new_words.append(w.lower())
+            text = " ".join(new_words)
+            if len(text) > 0:
+                text = text[0].upper() + text[1:]
+        else:
+            new_words = []
+            for w in words:
+                clean_w = re.sub(r'[^\w]', '', w).upper()
+                if clean_w in COMMON_ACRONYMS:
+                    new_words.append(re.sub(r'\b' + clean_w + r'\b', clean_w, w, flags=re.IGNORECASE))
+                else:
+                    new_words.append(w)
+            text = " ".join(new_words)
 
-    if is_mostly_upper:
-        new_words = []
-        for w in words:
-            clean_w = re.sub(r'[^\w]', '', w).upper()
-            if clean_w in COMMON_ACRONYMS or re.match(r'^(?:[A-Z]\.){2,}$', w):
-                new_words.append(w.upper())
-            else:
-                new_words.append(w.lower())
-        text = " ".join(new_words)
-        if len(text) > 0:
-            text = text[0].upper() + text[1:]
-    else:
-        new_words = []
-        for w in words:
-            clean_w = re.sub(r'[^\w]', '', w).upper()
-            if clean_w in COMMON_ACRONYMS:
-                new_words.append(re.sub(r'\b' + clean_w + r'\b', clean_w, w, flags=re.IGNORECASE))
-            else:
-                new_words.append(w)
-        text = " ".join(new_words)
-
-    # Minuscule après deux-points sauf si c'est un acronyme
+    # 4. Minuscule après deux-points sauf si c'est un acronyme
     def fix_colon(match):
         prefix, char, rest = match.group(1), match.group(2), match.group(3)
         word = char + rest
@@ -124,7 +127,7 @@ def sanitize_headline(text):
         return prefix + char.lower() + rest
 
     text = re.sub(r'(:\s+)([A-ZÀ-Ý])([a-zA-ZÀ-ÿ]*)', fix_colon, text)
-    return text
+    return text.strip()
 
 def evaluate_news(lang, news_list):
     api_key = os.environ.get("GEMINI_API_KEY")
@@ -151,22 +154,17 @@ Information actuellement affichée : "{current_h}"
 RÔLE : Rédacteur en Chef d'un média d'urgence en France ("L'Information Évidence du Moment").
 MISSION : Sélectionner l'actualité dominante avec une FORTE PRIORITÉ NATIONALE et rédiger un titre percutant.
 
-HIÉRARCHIE D'ARBITRAGE :
-1. PRIORITÉ NATIONALE : Événements majeurs impactant la France.
-2. FILTRE INTERNATIONAL STRICT : Uniquement rupture historique majeure ou gravité exceptionnelle.
-3. CONSENSUS : Présent dans au moins 2 sources.
-
-RÈGLES DE TYPOGRAPHIE ET DE CASSE (OBLIGATOIRES) :
+RÈGLES STRICTES :
 - Longueur : 80 caractères maximum.
 - CASSE DE PHRASE : Majuscule au début et aux noms propres. Tout le reste en minuscules.
-- CONSERVE EN MAJUSCULES les sigles et acronymes légitimes (ex: RN, LFI, SNCF, UE, ONU, IA, PIB, OTAN, etc.).
-- PAS DE TOUT EN MAJUSCULES pour les mots ordinaires.
+- CONSERVE EN MAJUSCULES les sigles (ex: RN, LFI, SNCF, UE, ONU, IA, PIB, OTAN, etc.).
+- PAS DE TOUT EN MAJUSCULES.
 - PAS DE MAJUSCULE À CHAQUE MOT.
-- PAS DE MAJUSCULE APRÈS LES DEUX-POINTS (sauf si c'est un acronyme ou nom propre).
-- Utilise l'apostrophe typographique courbe (’).
+- PAS DE MAJUSCULE APRÈS LES DEUX-POINTS.
+- Apostrophe courbe (’).
 
-FORMAT EXIGÉ :
-TITRE_REECRIT|||LINK
+FORMAT DE SORTIE STRICT (AUCUN AUTRE MOT NI TEXTE) :
+TITRE|||LINK
 """
     else:
         prompt = f"""
@@ -178,21 +176,16 @@ Current headline displayed: "{current_h}"
 ROLE: Editor-in-Chief of a high-urgency US news app ("The Essential News Right Now").
 MISSION: Select the dominant news story with a STRONG DOMESTIC NATIONAL PRIORITY and craft a sharp headline.
 
-HIERARCHY RULES:
-1. DOMESTIC PRIORITY: Major stories directly impacting the US.
-2. STRICT INTERNATIONAL FILTER: Major global events only.
-3. CONSENSUS: Confirmed by at least 2 major outlets.
-
-STRICT TYPOGRAPHY RULES (MANDATORY):
+STRICT RULES:
 - Limit: 80 characters max.
 - SENTENCE CASE ONLY: Capital letter only for the first word and proper nouns.
-- PRESERVE IN ALL CAPS legitimate acronyms and initialisms (e.g. US, USA, EU, UN, FBI, CIA, NATO, AI, GDP, etc.).
+- PRESERVE IN ALL CAPS legitimate acronyms (US, USA, EU, UN, FBI, CIA, USS, NATO, AI, GDP, etc.).
 - NO ALL CAPS for regular words.
 - NO Title Case.
-- Use curly apostrophes (’).
+- Curly apostrophes (’).
 
-REQUIRED FORMAT:
-REWRITTEN_HEADLINE|||LINK
+STRICT OUTPUT FORMAT (NOTHING ELSE, NO LABELS) :
+TITLE|||LINK
 """
 
     preferred_models = ["gemini-3.6-flash", "gemini-3.5-flash"]
