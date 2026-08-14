@@ -144,84 +144,106 @@
       text-align: center;
     }
 
-    /* MODAL A PROPOS */
+    /* MODAL A PROPOS (Design Affiné) */
     .modal-overlay {
       display: none;
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0, 0, 0, 0.7);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       z-index: 9999;
       align-items: center;
       justify-content: center;
-      padding: 20px;
+      padding: 24px;
+      opacity: 0;
+      transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .modal-overlay.active {
       display: flex;
+      opacity: 1;
     }
     .modal-card {
-      background: #111111;
+      background: rgba(24, 24, 26, 0.95);
       color: #FFFFFF;
-      border-radius: 20px;
-      padding: 34px 28px 30px;
-      max-width: 320px;
+      border-radius: 22px;
+      padding: 32px 28px;
+      max-width: 310px;
       width: 100%;
       position: relative;
       text-align: center;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.8);
-      border: 1px solid #222222;
+      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transform: scale(0.96);
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .modal-overlay.active .modal-card {
+      transform: scale(1);
     }
     .modal-close {
       position: absolute;
-      top: 12px;
+      top: 14px;
       right: 14px;
-      background: transparent;
+      background: rgba(255, 255, 255, 0.06);
       border: none;
-      font-size: 1.5rem;
-      color: #777777;
-      cursor: pointer;
-      line-height: 1;
-      padding: 4px;
-    }
-    .modal-close:hover {
-      color: #FFFFFF;
-    }
-    .modal-role {
-      font-size: 0.75rem;
-      color: #777777;
-      margin-bottom: 6px;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-    .modal-author {
-      font-size: 1.25rem;
-      font-weight: 600;
-      margin-bottom: 20px;
-      letter-spacing: -0.02em;
-    }
-    .modal-links {
-      font-size: 0.95rem;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 12px;
+      font-size: 1rem;
+      color: #8E8E93;
+      cursor: pointer;
+      line-height: 1;
+      transition: all 0.2s ease;
+    }
+    .modal-close:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #FFFFFF;
+    }
+    .modal-role {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #8E8E93;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .modal-author {
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin-bottom: 22px;
+      letter-spacing: -0.02em;
+      color: #FFFFFF;
+    }
+    .modal-links {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
     }
     .modal-links a {
-      color: #FFFFFF;
-      text-decoration: underline;
-      text-underline-offset: 4px;
-      text-decoration-color: #555555;
+      color: #E5E5E7;
+      text-decoration: none;
+      font-size: 0.88rem;
       font-weight: 500;
-      transition: text-decoration-color 0.2s ease, opacity 0.2s ease;
+      padding: 6px 14px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
     }
     .modal-links a:hover {
-      text-decoration-color: #FFFFFF;
-      opacity: 0.8;
+      background: rgba(255, 255, 255, 0.12);
+      color: #FFFFFF;
+      border-color: rgba(255, 255, 255, 0.15);
     }
     .modal-sep {
-      color: #444444;
-      font-size: 0.8rem;
+      display: none;
     }
   </style>
 </head>
