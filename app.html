@@ -2,388 +2,350 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Instant</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>INSTANT</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#000000">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
-      background-color: #0d0d0d;
-      color: #f5f5f7;
+      background-color: #000000;
+      color: #FFFFFF;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      min-height: 100dvh;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      min-height: 100vh;
-      padding: 3rem 2rem;
+      padding: calc(env(safe-area-inset-top, 24px) + 16px) 24px calc(env(safe-area-inset-bottom, 24px) + 16px);
+      user-select: none;
+      -webkit-user-select: none;
     }
+
+    /* HEADER */
     header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 0.8rem;
-      letter-spacing: 0.1em;
-      color: #86868b;
-      text-transform: uppercase;
+      width: 100%;
+      max-width: 1100px;
+      margin: 0 auto;
     }
-    .brand { font-weight: 700; color: #fff; }
-    
-    .lang-picker {
+    .logo {
+      font-size: 0.9rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #FFFFFF;
+    }
+    .header-right {
       display: flex;
+      align-items: center;
       gap: 12px;
+    }
+    .lang-toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
       font-weight: 600;
     }
     .lang-btn {
       background: none;
       border: none;
-      color: #424245;
-      font-size: 0.8rem;
+      color: #555555;
+      font-weight: 700;
+      font-size: 0.85rem;
       cursor: pointer;
+      padding: 2px 4px;
       transition: color 0.2s ease;
-      letter-spacing: 0.1em;
+      -webkit-tap-highlight-color: transparent;
     }
     .lang-btn.active {
-      color: #ffffff;
-      border-bottom: 1px solid #ffffff;
+      color: #FFFFFF;
+    }
+    .lang-sep {
+      color: #333333;
+      font-size: 0.75rem;
+    }
+    .info-btn {
+      background: none;
+      border: none;
+      color: #777777;
+      font-size: 1.1rem;
+      cursor: pointer;
+      padding: 2px 6px;
+      line-height: 1;
+      transition: color 0.2s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .info-btn:hover {
+      color: #FFFFFF;
     }
 
+    /* CONTENU PRINCIPAL */
     main {
-      flex: 1;
+      width: 100%;
+      max-width: 1100px;
+      margin: 0 auto;
       display: flex;
       flex-direction: column;
       justify-content: center;
-      max-width: 700px;
-      margin: 0 auto;
-      width: 100%;
+      align-items: flex-start;
+      flex: 1;
+      padding: 40px 0;
     }
     .headline {
-      font-size: clamp(2rem, 5vw, 3.5rem);
-      font-weight: 600;
-      line-height: 1.25;
-      letter-spacing: -0.02em;
-      margin-bottom: 2.5rem;
+      font-size: clamp(2.2rem, 5.5vw, 4.5rem);
+      font-weight: 700;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      margin-bottom: 32px;
+      max-width: 950px;
+      word-wrap: break-word;
     }
-    .cta {
-      color: #fff;
+    .source-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: #FFFFFF;
       text-decoration: none;
       font-size: 1rem;
-      border-bottom: 1px solid #424245;
-      padding-bottom: 4px;
-      width: fit-content;
-      transition: border-color 0.2s ease;
+      font-weight: 500;
+      border-bottom: 1px solid #FFFFFF;
+      padding-bottom: 3px;
+      transition: opacity 0.2s ease;
+      -webkit-tap-highlight-color: transparent;
     }
-    .cta:hover { border-color: #fff; }
+    .source-link:hover {
+      opacity: 0.7;
+    }
 
+    /* FOOTER */
     footer {
+      width: 100%;
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #555555;
+      font-size: 0.85rem;
+    }
+
+    /* MODAL A PROPOS */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.active {
+      display: flex;
+    }
+    .modal-card {
+      background: #1C1C1E;
+      color: #FFFFFF;
+      border-radius: 20px;
+      padding: 32px 24px 28px;
+      max-width: 320px;
+      width: 100%;
+      position: relative;
       text-align: center;
-      font-size: clamp(0.7rem, 2.8vw, 0.8rem);
-      color: #424245;
-      white-space: nowrap;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+      border: 1px solid #2C2C2E;
     }
-    footer a {
-      color: #424245;
+    .modal-close {
+      position: absolute;
+      top: 12px;
+      right: 14px;
+      background: transparent;
+      border: none;
+      font-size: 1.5rem;
+      color: #8E8E93;
+      cursor: pointer;
+      line-height: 1;
+      padding: 4px;
+    }
+    .modal-role {
+      font-size: 0.8rem;
+      color: #8E8E93;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .modal-author {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 18px;
+      letter-spacing: -0.02em;
+    }
+    .modal-links {
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+    .modal-links a {
+      color: #0A84FF;
       text-decoration: none;
-      transition: color 0.2s ease;
+      font-weight: 500;
     }
-    footer a:hover {
-      color: #86868b;
+    .modal-links a:hover {
+      text-decoration: underline;
+    }
+    .modal-sep {
+      color: #555555;
+      font-size: 0.8rem;
     }
   </style>
+</head>
+<body>
 
   <script id="news-data" type="application/json">
   {"time": "12:00", "FR": {"headline": "L'actualité majeure est en cours d'analyse...", "url": "https://news.google.fr"}, "US": {"headline": "Major news is currently being analyzed...", "url": "https://news.google.com"}}
   </script>
-</head>
-<body>
 
   <header>
-    <span class="brand">INSTANT</span>
-    <div class="lang-picker">
-      <button class="lang-btn active" id="btn-fr" onclick="switchLang('FR')">FR</button>
-      <button class="lang-btn" id="btn-us" onclick="switchLang('US')">US</button>
+    <div class="logo">INSTANT</div>
+    <div class="header-right">
+      <div class="lang-toggle">
+        <button id="btn-fr" class="lang-btn active" onclick="setLang('FR')">FR</button>
+        <span class="lang-sep">|</span>
+        <button id="btn-us" class="lang-btn" onclick="setLang('US')">US</button>
+      </div>
+      <button class="info-btn" aria-label="À propos" onclick="openModal()">ⓘ</button>
     </div>
-  
-
-
-</header>
+  </header>
 
   <main>
-    <h1 class="headline" id="headline">L'actualité majeure est en cours d'analyse...</h1>
-    <a href="https://news.google.fr" id="source-link" class="cta" target="_blank">Voir la source ↗</a>
+    <h1 id="headline" class="headline">...</h1>
+    <a id="source-link" class="source-link" href="#" target="_blank" rel="noopener noreferrer">
+      <span id="source-label">Voir la source</span> ↗
+    </a>
   </main>
 
   <footer>
-    <span id="footer-text">La seule info qui compte en ce moment.</span> · 
-    <a href="https://www.linkedin.com/in/mehdiramdani/" target="_blank">Mehdi Ramdani</a>
+    <div id="update-time">--:--</div>
   </footer>
 
-  <script>
-    let currentLang = localStorage.getItem('instant_lang') || 'FR';
-
-    function renderNews() {
-      try {
-        const rawData = document.getElementById('news-data').textContent;
-        const data = JSON.parse(rawData);
-
-        if (currentLang === 'US') {
-          document.getElementById('source-link').textContent = "View source ↗";
-          document.getElementById('footer-text').textContent = "The single story that matters right now.";
-          document.getElementById('btn-us').classList.add('active');
-          document.getElementById('btn-fr').classList.remove('active');
-        } else {
-          document.getElementById('source-link').textContent = "Voir la source ↗";
-          document.getElementById('footer-text').textContent = "La seule info qui compte en ce moment.";
-          document.getElementById('btn-fr').classList.add('active');
-          document.getElementById('btn-us').classList.remove('active');
-        }
-
-        const item = data[currentLang] || data['FR'];
-        if (item && item.headline) {
-          document.getElementById('headline').textContent = item.headline;
-          document.getElementById('source-link').href = item.url;
-        }
-      } catch (e) {
-        console.error("Erreur d'affichage :", e);
-      }
-    }
-
-    function switchLang(lang) {
-      currentLang = lang;
-      localStorage.setItem('instant_lang', lang);
-      renderNews();
-    }
-
-    window.onload = renderNews;
-  </script>
-
-
-<script>
-  // Rafraîchissement automatique au réveil sur iOS (PWA / Raccourci)
-  document.addEventListener("visibilitychange", function() {
-    if (document.visibilityState === "visible") {
-      window.location.reload(true);
-    }
-  });
-  window.addEventListener("pageshow", function(e) {
-    if (e.persisted) {
-      window.location.reload(true);
-    }
-  });
-</script>
-
-
-<script>
-  // Détection du Swipe tactile Gauche / Droite (iOS & Mobile)
-  (function() {
-    let touchStartX = 0;
-    let touchStartY = 0;
-    let touchEndX = 0;
-    let touchEndY = 0;
-    const minDistance = 50; // Seuil minimum en pixels pour valider le swipe
-
-    document.addEventListener('touchstart', function(e) {
-      touchStartX = e.changedTouches[0].screenX;
-      touchStartY = e.changedTouches[0].screenY;
-    }, { passive: true });
-
-    document.addEventListener('touchend', function(e) {
-      touchEndX = e.changedTouches[0].screenX;
-      touchEndY = e.changedTouches[0].screenY;
-      handleSwipe();
-    }, { passive: true });
-
-    function handleSwipe() {
-      const deltaX = touchEndX - touchStartX;
-      const deltaY = touchEndY - touchStartY;
-
-      // On vérifie que le mouvement est principalement horizontal (évite les conflits avec le scroll vertical)
-      if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minDistance) {
-        if (deltaX < 0) {
-          // Swipe vers la gauche -> Passer à US
-          if (typeof setLanguage === 'function') {
-            setLanguage('US');
-          } else if (typeof switchLang === 'function') {
-            switchLang('US');
-          }
-        } else {
-          // Swipe vers la droite -> Passer à FR
-          if (typeof setLanguage === 'function') {
-            setLanguage('FR');
-          } else if (typeof switchLang === 'function') {
-            switchLang('FR');
-          }
-        }
-      }
-    }
-  })();
-</script>
-
-
-<!-- Bouton Info discret -->
-<button id="info-btn" aria-label="About" onclick="openModal()">ⓘ</button>
-
-<!-- Modal A Propos -->
-<div id="info-modal" class="modal-overlay" onclick="closeModal(event)">
-  <div class="modal-card" onclick="event.stopPropagation()">
-    <button class="modal-close" onclick="closeModal()">×</button>
-    <div id="modal-content-fr">
-      <p class="modal-role">Conception & développement :</p>
-      <p class="modal-author">Mehdi Ramdani</p>
-      <div class="modal-links">
-        <a href="https://www.linkedin.com/in/mehdiramdani/" target="_blank" rel="noopener noreferrer">LinkedIn ↗</a>
-        <span class="modal-sep">•</span>
-        <a href="https://github.com/mehdiramdani-bit" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+  <!-- Modal A Propos -->
+  <div id="info-modal" class="modal-overlay" onclick="closeModal(event)">
+    <div class="modal-card" onclick="event.stopPropagation()">
+      <button class="modal-close" onclick="closeModal()">×</button>
+      <div id="modal-content-fr">
+        <p class="modal-role">Conception & développement :</p>
+        <p class="modal-author">Mehdi Ramdani</p>
+        <div class="modal-links">
+          <a href="https://www.linkedin.com/in/mehdiramdani/" target="_blank" rel="noopener noreferrer">LinkedIn ↗</a>
+          <span class="modal-sep">•</span>
+          <a href="https://github.com/mehdiramdani-bit" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+        </div>
       </div>
-    </div>
-    <div id="modal-content-us" style="display: none;">
-      <p class="modal-role">Design & Development:</p>
-      <p class="modal-author">Mehdi Ramdani</p>
-      <div class="modal-links">
-        <a href="https://www.linkedin.com/in/mehdiramdani/" target="_blank" rel="noopener noreferrer">LinkedIn ↗</a>
-        <span class="modal-sep">•</span>
-        <a href="https://github.com/mehdiramdani-bit" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+      <div id="modal-content-us" style="display: none;">
+        <p class="modal-role">Design & Development:</p>
+        <p class="modal-author">Mehdi Ramdani</p>
+        <div class="modal-links">
+          <a href="https://www.linkedin.com/in/mehdiramdani/" target="_blank" rel="noopener noreferrer">LinkedIn ↗</a>
+          <span class="modal-sep">•</span>
+          <a href="https://github.com/mehdiramdani-bit" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+        </div>
       </div>
     </div>
   </div>
-</div>
 
-<style>
-  /* Header / Barre superieure a droite */
-  .top-bar, .header, header, .lang-container {
-    display: flex !important;
-    justify-content: flex-end !important;
-    align-items: center !important;
-    gap: 8px !important;
-  }
+  <script>
+    let currentLang = 'FR';
+    let newsData = {};
 
-  /* Bouton Info integre au groupe */
-  #info-btn {
-    position: static !important;
-    background: transparent;
-    border: none;
-    color: #8E8E93;
-    font-size: 1.15rem;
-    cursor: pointer;
-    padding: 4px 6px;
-    line-height: 1;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    transition: color 0.2s ease;
-    -webkit-tap-highlight-color: transparent;
-  }
-  #info-btn:hover {
-    color: #000;
-  }
-  @media (prefers-color-scheme: dark) {
-    #info-btn:hover { color: #FFF; }
-  }
-
-  /* Modal Floute iOS */
-  .modal-overlay {
-    display: none;
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    z-index: 9999;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    opacity: 0;
-    transition: opacity 0.2s ease;
-  }
-  .modal-overlay.active {
-    display: flex;
-    opacity: 1;
-  }
-  .modal-card {
-    background: #FFFFFF;
-    color: #000000;
-    border-radius: 18px;
-    padding: 28px 24px 24px;
-    max-width: 320px;
-    width: 100%;
-    position: relative;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.15);
-    text-align: center;
-    transform: scale(0.95);
-    transition: transform 0.2s ease;
-  }
-  @media (prefers-color-scheme: dark) {
-    .modal-card {
-      background: #1C1C1E;
-      color: #FFFFFF;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    function initNews() {
+      try {
+        const raw = document.getElementById('news-data').textContent;
+        newsData = JSON.parse(raw);
+      } catch (e) {
+        newsData = {
+          time: "--:--",
+          FR: { headline: "Information indisponible", url: "#" },
+          US: { headline: "News unavailable", url: "#" }
+        };
+      }
+      render();
     }
-  }
-  .modal-overlay.active .modal-card {
-    transform: scale(1);
-  }
-  .modal-close {
-    position: absolute;
-    top: 12px;
-    right: 14px;
-    background: transparent;
-    border: none;
-    font-size: 1.5rem;
-    color: #8E8E93;
-    cursor: pointer;
-    line-height: 1;
-    padding: 4px;
-  }
-  .modal-role {
-    font-size: 0.85rem;
-    color: #8E8E93;
-    margin: 0 0 6px 0;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-  .modal-author {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin: 0 0 16px 0;
-    letter-spacing: -0.02em;
-  }
-  .modal-links {
-    font-size: 0.95rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-  }
-  .modal-links a {
-    color: #0071E3;
-    text-decoration: none;
-    font-weight: 500;
-  }
-  .modal-links a:hover {
-    text-decoration: underline;
-  }
-  .modal-sep {
-    color: #8E8E93;
-    font-size: 0.8rem;
-  }
-</style>
 
-<script>
-  function openModal() {
-    const isUS = (typeof currentLang !== 'undefined' && currentLang === 'US');
-    document.getElementById('modal-content-fr').style.display = isUS ? 'none' : 'block';
-    document.getElementById('modal-content-us').style.display = isUS ? 'block' : 'none';
-    const modal = document.getElementById('info-modal');
-    modal.classList.add('active');
-  }
+    function setLang(lang) {
+      currentLang = lang;
+      render();
+    }
 
-  function closeModal() {
-    const modal = document.getElementById('info-modal');
-    modal.classList.remove('active');
-  }
+    function render() {
+      const item = newsData[currentLang] || { headline: "...", url: "#" };
+      document.getElementById('headline').textContent = item.headline;
+      document.getElementById('source-link').href = item.url;
+      document.getElementById('update-time').textContent = newsData.time || "--:--";
 
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') closeModal();
-  });
-</script>
+      // Boutons Langue
+      document.getElementById('btn-fr').classList.toggle('active', currentLang === 'FR');
+      document.getElementById('btn-us').classList.toggle('active', currentLang === 'US');
+      document.getElementById('source-label').textContent = (currentLang === 'FR') ? 'Voir la source' : 'Read source';
+    }
 
+    function openModal() {
+      const isUS = (currentLang === 'US');
+      document.getElementById('modal-content-fr').style.display = isUS ? 'none' : 'block';
+      document.getElementById('modal-content-us').style.display = isUS ? 'block' : 'none';
+      document.getElementById('info-modal').classList.add('active');
+    }
+
+    function closeModal() {
+      document.getElementById('info-modal').classList.remove('active');
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeModal();
+    });
+
+    // Geste de Swipe Gauche / Droite
+    (function() {
+      let startX = 0, startY = 0;
+      document.addEventListener('touchstart', (e) => {
+        startX = e.changedTouches[0].screenX;
+        startY = e.changedTouches[0].screenY;
+      }, { passive: true });
+
+      document.addEventListener('touchend', (e) => {
+        const endX = e.changedTouches[0].screenX;
+        const endY = e.changedTouches[0].screenY;
+        const deltaX = endX - startX;
+        const deltaY = endY - startY;
+        if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+          setLang(deltaX < 0 ? 'US' : 'FR');
+        }
+      }, { passive: true });
+    })();
+
+    // Rafraîchissement iPhone au réveil
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") window.location.reload(true);
+    });
+    window.addEventListener("pageshow", (e) => {
+      if (e.persisted) window.location.reload(true);
+    });
+
+    initNews();
+  </script>
 </body>
 </html>
