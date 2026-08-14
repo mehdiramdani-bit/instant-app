@@ -167,5 +167,52 @@
   });
 </script>
 
+
+<script>
+  // Détection du Swipe tactile Gauche / Droite (iOS & Mobile)
+  (function() {
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchEndX = 0;
+    let touchEndY = 0;
+    const minDistance = 50; // Seuil minimum en pixels pour valider le swipe
+
+    document.addEventListener('touchstart', function(e) {
+      touchStartX = e.changedTouches[0].screenX;
+      touchStartY = e.changedTouches[0].screenY;
+    }, { passive: true });
+
+    document.addEventListener('touchend', function(e) {
+      touchEndX = e.changedTouches[0].screenX;
+      touchEndY = e.changedTouches[0].screenY;
+      handleSwipe();
+    }, { passive: true });
+
+    function handleSwipe() {
+      const deltaX = touchEndX - touchStartX;
+      const deltaY = touchEndY - touchStartY;
+
+      // On vérifie que le mouvement est principalement horizontal (évite les conflits avec le scroll vertical)
+      if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minDistance) {
+        if (deltaX < 0) {
+          // Swipe vers la gauche -> Passer à US
+          if (typeof setLanguage === 'function') {
+            setLanguage('US');
+          } else if (typeof switchLang === 'function') {
+            switchLang('US');
+          }
+        } else {
+          // Swipe vers la droite -> Passer à FR
+          if (typeof setLanguage === 'function') {
+            setLanguage('FR');
+          } else if (typeof switchLang === 'function') {
+            switchLang('FR');
+          }
+        }
+      }
+    }
+  })();
+</script>
+
 </body>
 </html>
