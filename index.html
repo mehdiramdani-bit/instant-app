@@ -102,161 +102,7 @@
       <button class="lang-btn" id="btn-us" onclick="switchLang('US')">US</button>
     </div>
   
-<!-- Bouton Info discret -->
-<button id="info-btn" aria-label="About" onclick="openModal()">ⓘ</button>
 
-<!-- Modal A Propos -->
-<div id="info-modal" class="modal-overlay" onclick="closeModal(event)">
-  <div class="modal-card" onclick="event.stopPropagation()">
-    <button class="modal-close" onclick="closeModal()">×</button>
-    <div id="modal-content-fr">
-      <p class="modal-role">Conception & développement :</p>
-      <p class="modal-author">Mehdi Ramdani</p>
-      <div class="modal-links">
-        <a href="https://www.linkedin.com/in/mehdiramdani/" target="_blank" rel="noopener noreferrer">LinkedIn ↗</a>
-        <span class="modal-sep">•</span>
-        <a href="https://github.com/mehdiramdani-bit" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
-      </div>
-    </div>
-    <div id="modal-content-us" style="display: none;">
-      <p class="modal-role">Design & Development:</p>
-      <p class="modal-author">Mehdi Ramdani</p>
-      <div class="modal-links">
-        <a href="https://www.linkedin.com/in/mehdiramdani/" target="_blank" rel="noopener noreferrer">LinkedIn ↗</a>
-        <span class="modal-sep">•</span>
-        <a href="https://github.com/mehdiramdani-bit" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
-      </div>
-    </div>
-  </div>
-</div>
-
-<style>
-  /* Style Bouton Info */
-  #info-btn {
-    background: transparent;
-    border: none;
-    color: #8E8E93;
-    font-size: 1.15rem;
-    cursor: pointer;
-    padding: 6px;
-    margin-left: 8px;
-    line-height: 1;
-    transition: color 0.2s ease, transform 0.1s ease;
-    -webkit-tap-highlight-color: transparent;
-  }
-  #info-btn:hover {
-    color: #000;
-  }
-  @media (prefers-color-scheme: dark) {
-    #info-btn:hover { color: #FFF; }
-  }
-
-  /* Style Modal iOS Flouté */
-  .modal-overlay {
-    display: none;
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    z-index: 9999;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    opacity: 0;
-    transition: opacity 0.2s ease;
-  }
-  .modal-overlay.active {
-    display: flex;
-    opacity: 1;
-  }
-  .modal-card {
-    background: #FFFFFF;
-    color: #000000;
-    border-radius: 18px;
-    padding: 28px 24px 24px;
-    max-width: 320px;
-    width: 100%;
-    position: relative;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.15);
-    text-align: center;
-    transform: scale(0.95);
-    transition: transform 0.2s ease;
-  }
-  @media (prefers-color-scheme: dark) {
-    .modal-card {
-      background: #1C1C1E;
-      color: #FFFFFF;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-    }
-  }
-  .modal-overlay.active .modal-card {
-    transform: scale(1);
-  }
-  .modal-close {
-    position: absolute;
-    top: 12px;
-    right: 14px;
-    background: transparent;
-    border: none;
-    font-size: 1.5rem;
-    color: #8E8E93;
-    cursor: pointer;
-    line-height: 1;
-    padding: 4px;
-  }
-  .modal-role {
-    font-size: 0.85rem;
-    color: #8E8E93;
-    margin: 0 0 6px 0;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-  .modal-author {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin: 0 0 16px 0;
-    letter-spacing: -0.02em;
-  }
-  .modal-links {
-    font-size: 0.95rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-  }
-  .modal-links a {
-    color: #0071E3;
-    text-decoration: none;
-    font-weight: 500;
-  }
-  .modal-links a:hover {
-    text-decoration: underline;
-  }
-  .modal-sep {
-    color: #8E8E93;
-    font-size: 0.8rem;
-  }
-</style>
-
-<script>
-  function openModal() {
-    const isUS = (typeof currentLang !== 'undefined' && currentLang === 'US');
-    document.getElementById('modal-content-fr').style.display = isUS ? 'none' : 'block';
-    document.getElementById('modal-content-us').style.display = isUS ? 'block' : 'none';
-    const modal = document.getElementById('info-modal');
-    modal.classList.add('active');
-  }
-
-  function closeModal() {
-    const modal = document.getElementById('info-modal');
-    modal.classList.remove('active');
-  }
-
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') closeModal();
-  });
-</script>
 
 </header>
 
@@ -369,6 +215,174 @@
       }
     }
   })();
+</script>
+
+
+<!-- Bouton Info discret -->
+<button id="info-btn" aria-label="About" onclick="openModal()">ⓘ</button>
+
+<!-- Modal A Propos -->
+<div id="info-modal" class="modal-overlay" onclick="closeModal(event)">
+  <div class="modal-card" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div id="modal-content-fr">
+      <p class="modal-role">Conception & développement :</p>
+      <p class="modal-author">Mehdi Ramdani</p>
+      <div class="modal-links">
+        <a href="https://www.linkedin.com/in/mehdiramdani/" target="_blank" rel="noopener noreferrer">LinkedIn ↗</a>
+        <span class="modal-sep">•</span>
+        <a href="https://github.com/mehdiramdani-bit" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+      </div>
+    </div>
+    <div id="modal-content-us" style="display: none;">
+      <p class="modal-role">Design & Development:</p>
+      <p class="modal-author">Mehdi Ramdani</p>
+      <div class="modal-links">
+        <a href="https://www.linkedin.com/in/mehdiramdani/" target="_blank" rel="noopener noreferrer">LinkedIn ↗</a>
+        <span class="modal-sep">•</span>
+        <a href="https://github.com/mehdiramdani-bit" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Header / Barre superieure a droite */
+  .top-bar, .header, header, .lang-container {
+    display: flex !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    gap: 8px !important;
+  }
+
+  /* Bouton Info integre au groupe */
+  #info-btn {
+    position: static !important;
+    background: transparent;
+    border: none;
+    color: #8E8E93;
+    font-size: 1.15rem;
+    cursor: pointer;
+    padding: 4px 6px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #info-btn:hover {
+    color: #000;
+  }
+  @media (prefers-color-scheme: dark) {
+    #info-btn:hover { color: #FFF; }
+  }
+
+  /* Modal Floute iOS */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+  .modal-overlay.active {
+    display: flex;
+    opacity: 1;
+  }
+  .modal-card {
+    background: #FFFFFF;
+    color: #000000;
+    border-radius: 18px;
+    padding: 28px 24px 24px;
+    max-width: 320px;
+    width: 100%;
+    position: relative;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+    text-align: center;
+    transform: scale(0.95);
+    transition: transform 0.2s ease;
+  }
+  @media (prefers-color-scheme: dark) {
+    .modal-card {
+      background: #1C1C1E;
+      color: #FFFFFF;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    }
+  }
+  .modal-overlay.active .modal-card {
+    transform: scale(1);
+  }
+  .modal-close {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    background: transparent;
+    border: none;
+    font-size: 1.5rem;
+    color: #8E8E93;
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px;
+  }
+  .modal-role {
+    font-size: 0.85rem;
+    color: #8E8E93;
+    margin: 0 0 6px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .modal-author {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0 0 16px 0;
+    letter-spacing: -0.02em;
+  }
+  .modal-links {
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+  .modal-links a {
+    color: #0071E3;
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .modal-links a:hover {
+    text-decoration: underline;
+  }
+  .modal-sep {
+    color: #8E8E93;
+    font-size: 0.8rem;
+  }
+</style>
+
+<script>
+  function openModal() {
+    const isUS = (typeof currentLang !== 'undefined' && currentLang === 'US');
+    document.getElementById('modal-content-fr').style.display = isUS ? 'none' : 'block';
+    document.getElementById('modal-content-us').style.display = isUS ? 'block' : 'none';
+    const modal = document.getElementById('info-modal');
+    modal.classList.add('active');
+  }
+
+  function closeModal() {
+    const modal = document.getElementById('info-modal');
+    modal.classList.remove('active');
+  }
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeModal();
+  });
 </script>
 
 </body>
