@@ -14,22 +14,25 @@ os.environ['TZ'] = 'Europe/Paris'
 if hasattr(time, 'tzset'):
     time.tzset()
 
-print("--> [START] Moteur Instant démarré (Consigne d'information dense 70-80 signes)", flush=True)
+print("--> [START] Moteur Instant démarré", flush=True)
 
 current_news = {
     "FR": {"headline": "Analyse Gemini en cours...", "url": "https://news.google.fr"},
     "US": {"headline": "Gemini analysis in progress...", "url": "https://news.google.com"}
 }
 
+# --- SOURCES RSS MISES À JOUR ---
 SOURCES_FR = [
     {"name": "Le Monde", "url": "https://www.lemonde.fr/rss/une.xml", "domain": "https://www.lemonde.fr"},
     {"name": "Le Figaro", "url": "https://www.lefigaro.fr/rss/figaro_une.xml", "domain": "https://www.lefigaro.fr"},
+    {"name": "Le Parisien", "url": "https://www.leparisien.fr/arc/outboundfeeds/rss/category/actualites-du-jour/?outputType=xml", "domain": "https://www.leparisien.fr"},
     {"name": "France Info", "url": "https://www.francetvinfo.fr/titres.rss", "domain": "https://www.francetvinfo.fr"},
-    {"name": "BFM TV", "url": "https://www.bfmtv.com/rss/info/flux-rss/flux-toutes-les-actualites/", "domain": "https://www.bfmtv.com"}
+    {"name": "BFM TV", "url": "https://www.bfmtv.com/rss/info/flux-rss/flux-une/", "domain": "https://www.bfmtv.com"}
 ]
 
 SOURCES_US = [
     {"name": "NY Times", "url": "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml", "domain": "https://www.nytimes.com"},
+    {"name": "Washington Post", "url": "https://feeds.washingtonpost.com/rss/national", "domain": "https://www.washingtonpost.com"},
     {"name": "AP News", "url": "https://feedx.net/rss/ap.xml", "domain": "https://apnews.com"},
     {"name": "NPR News", "url": "https://feeds.npr.org/1001/rss.xml", "domain": "https://www.npr.org"},
     {"name": "CBS News", "url": "https://www.cbsnews.com/rss/ftag/main/", "domain": "https://www.cbsnews.com"}
@@ -84,6 +87,7 @@ def evaluate_news(lang, news_list):
 
     current_h = current_news[lang]["headline"]
     
+    # --- PROMPTS AJUSTÉS (COHÉRENCE NATIONALE VS. INTERNATIONALE) ---
     if lang == "FR":
         prompt = f"""
 Voici la sélection des titres issus de la UNE des grands journaux nationaux français :
@@ -91,18 +95,17 @@ Voici la sélection des titres issus de la UNE des grands journaux nationaux fra
 
 Information actuellement affichée : "{current_h}"
 
-RÔLE : Rédacteur en Chef d'un média d'urgence ("L'Information Évidence du Moment").
-MISSION : Réécrire l'actualité majeure sous la forme d'une alerte d'information complète et précise.
+RÔLE : Rédacteur en Chef d'un média d'urgence en France ("L'Information Évidence du Moment").
+MISSION : Sélectionner l'actualité dominante avec une FORTE PRIORITÉ NATIONALE.
 
-CONSIGNE STRICTE DE DENSITÉ ET DE LONGUEUR :
-1. TON TITRE DOIT COMPORTER ENTRE 70 ET 85 CARACTÈRES (espaces compris).
-2. Ne fais PAS de phrase trop courte (ex: 40-50 caractères est INTERDIT).
-3. Inclus impérativement : le sujet principal + l'action précise au présent + un détail clé de contexte (chiffre, lieu, échéance ou cause).
-4. CONSENSUS : Événement majeur confirmé par au moins 2 sources.
+HIÉRARCHIE D'ARBITRAGE :
+1. PRIORITÉ NATIONALE : Privilégie les événements qui impactent directement la France, les citoyens ou la vie politique/économique nationale.
+2. FILTRE INTERNATIONAL STRICT : Ne choisis un sujet international QUE s'il s'agit d'une rupture historique majeure ou d'un événement d'une gravité exceptionnelle. Évite les développements de routine de crises lointaines.
+3. CONSENSUS : Présent dans au moins 2 sources.
 
-EXEMPLE D'OBJECTIF :
-- Trop court (INTERDIT) : "Le gouvernement prépare une baisse du déficit" (46 signes)
-- Parfait (AUTORISÉ) : "Le gouvernement annonce un plan de 10 milliards pour réduire le déficit" (75 signes)
+CONSIGNES DE FORME :
+- Limite : 80 caractères maximum (espaces compris).
+- Style : Phrase complète, directe et percutante au présent.
 
 FORMAT DE RÉPONSE EXIGÉ :
 TITRE_REECRIT|||LINK
@@ -115,17 +118,16 @@ Here is the selection of top headlines from major domestic US news outlets:
 Current headline displayed: "{current_h}"
 
 ROLE: Editor-in-Chief of a high-urgency US news app ("The Essential News Right Now").
-MISSION: Select and rewrite the SINGLE most critical national story into a detailed, informative headline.
+MISSION: Select the dominant news story with a STRONG DOMESTIC NATIONAL PRIORITY.
 
-STRICT LENGTH AND DENSITY RULES:
-1. YOUR HEADLINE MUST BE BETWEEN 70 AND 85 CHARACTERS long (including spaces).
-2. DO NOT write short phrases under 65 characters.
-3. Must include: Core subject + Present tense verb + Specific key detail (data, location, or outcome).
-4. CONSENSUS: Must be covered by at least 2 outlets.
+HIERARCHY RULES:
+1. DOMESTIC PRIORITY: Strong preference for major stories directly impacting the US (federal government, economy, critical national events).
+2. STRICT INTERNATIONAL FILTER: Only select foreign news if it represents a major global breaking event or directly threatens national security. Avoid incremental foreign updates.
+3. CONSENSUS: Must be confirmed by at least 2 major outlets.
 
-EXAMPLE:
-- Too short (FORBIDDEN): "The Senate passes a new economic bill" (38 chars)
-- Perfect (ALLOWED): "The Senate approves a $50B economic stimulus plan after bipartisan vote" (74 chars)
+STYLE RULES:
+- Limit: 80 characters maximum (including spaces).
+- Style: Clear, concise present tense sentence.
 
 REQUIRED RESPONSE FORMAT:
 REWRITTEN_HEADLINE|||LINK
