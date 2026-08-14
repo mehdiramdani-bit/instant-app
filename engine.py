@@ -14,14 +14,13 @@ os.environ['TZ'] = 'Europe/Paris'
 if hasattr(time, 'tzset'):
     time.tzset()
 
-print("--> [START] Moteur Instant démarré (Flux RSS corrigés)", flush=True)
+print("--> [START] Moteur Instant démarré (Style Dépêche optimisé)", flush=True)
 
 current_news = {
     "FR": {"headline": "Analyse Gemini en cours...", "url": "https://news.google.fr"},
     "US": {"headline": "Gemini analysis in progress...", "url": "https://news.google.com"}
 }
 
-# Sources FR (Flux vérifiés et ouverts)
 SOURCES_FR = [
     {"name": "Le Monde", "url": "https://www.lemonde.fr/rss/une.xml", "domain": "https://www.lemonde.fr"},
     {"name": "Le Figaro", "url": "https://www.lefigaro.fr/rss/figaro_une.xml", "domain": "https://www.lefigaro.fr"},
@@ -30,7 +29,6 @@ SOURCES_FR = [
     {"name": "BFM TV", "url": "https://www.bfmtv.com/rss/info/flux-rss/flux-toutes-les-actualites/", "domain": "https://www.bfmtv.com"}
 ]
 
-# Sources US (Flux vérifiés et ouverts)
 SOURCES_US = [
     {"name": "NY Times", "url": "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml", "domain": "https://www.nytimes.com"},
     {"name": "Washington Post", "url": "https://feeds.washingtonpost.com/rss/national", "domain": "https://www.washingtonpost.com"},
@@ -96,16 +94,17 @@ Voici la sélection des titres issus de la UNE des grands journaux nationaux fra
 Information actuellement affichée : "{current_h}"
 
 RÔLE : Rédacteur en Chef d'un média d'urgence en France ("L'Information Évidence du Moment").
-MISSION : Sélectionner l'actualité dominante avec une FORTE PRIORITÉ NATIONALE.
+MISSION : Sélectionner l'actualité dominante avec une FORTE PRIORITÉ NATIONALE et rédiger un titre incisif.
 
 HIÉRARCHIE D'ARBITRAGE :
 1. PRIORITÉ NATIONALE : Privilégie les événements qui impactent directement la France, les citoyens ou la vie politique/économique nationale.
 2. FILTRE INTERNATIONAL STRICT : Ne choisis un sujet international QUE s'il s'agit d'une rupture historique majeure ou d'un événement d'une gravité exceptionnelle. Évite les développements de routine de crises lointaines.
 3. CONSENSUS : Présent dans au moins 2 sources.
 
-CONSIGNES DE FORME :
+CONSIGNES DE STYLE ET DE FORME :
 - Limite : 80 caractères maximum (espaces compris).
-- Style : Phrase complète, directe et percutante au présent.
+- Style dépêche naturel : Privilégie la voix active OU le style nominal/participe direct (ex: "474 personnes interpellées..." au lieu de "474 personnes sont interpellées...").
+- Évite les tournures passives lourdes avec l'auxiliaire être ("est voté", "sont annoncés"). Sois percutant et fluide.
 
 FORMAT DE RÉPONSE EXIGÉ :
 TITRE_REECRIT|||LINK
@@ -118,7 +117,7 @@ Here is the selection of top headlines from major domestic US news outlets:
 Current headline displayed: "{current_h}"
 
 ROLE: Editor-in-Chief of a high-urgency US news app ("The Essential News Right Now").
-MISSION: Select the dominant news story with a STRONG DOMESTIC NATIONAL PRIORITY.
+MISSION: Select the dominant news story with a STRONG DOMESTIC NATIONAL PRIORITY and craft a sharp headline.
 
 HIERARCHY RULES:
 1. DOMESTIC PRIORITY: Strong preference for major stories directly impacting the US (federal government, economy, critical national events).
@@ -127,7 +126,8 @@ HIERARCHY RULES:
 
 STYLE RULES:
 - Limit: 80 characters maximum (including spaces).
-- Style: Clear, concise present tense sentence.
+- Wire style: Use active voice OR concise participial/noun phrase (e.g., "474 people arrested..." rather than "474 people are arrested...").
+- Avoid clumsy passive voice with "is/are". Keep it natural, sharp, and impactful.
 
 REQUIRED RESPONSE FORMAT:
 REWRITTEN_HEADLINE|||LINK
