@@ -99,7 +99,12 @@
       flex: 1;
       padding: 40px 0;
       box-sizing: border-box;
-      padding-left: clamp(24px, 16vw, 220px);
+      padding-left: clamp(40px, 16vw, 220px);
+    }
+    @media (max-width: 768px) {
+      main {
+        padding-left: 0;
+      }
     }
     .headline {
       font-size: clamp(2.2rem, 5.5vw, 4.5rem);
