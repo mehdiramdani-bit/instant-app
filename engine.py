@@ -14,7 +14,7 @@ os.environ['TZ'] = 'Europe/Paris'
 if hasattr(time, 'tzset'):
     time.tzset()
 
-print("--> [START] Moteur Instant démarré (Parsing & Typographie Robustes)", flush=True)
+print("--> [START] Moteur Instant démarré (Flux US Ultra-Résilients)", flush=True)
 
 current_news = {
     "FR": {"headline": "Analyse Gemini en cours...", "url": "https://news.google.fr"},
@@ -29,10 +29,11 @@ SOURCES_FR = [
     {"name": "BFM TV", "url": "https://www.bfmtv.com/rss/info/flux-rss/flux-toutes-les-actualites/", "domain": "https://www.bfmtv.com"}
 ]
 
+# Flux US certifiés ultra-stables (pas de 403 ni de proxy tiers)
 SOURCES_US = [
     {"name": "NY Times", "url": "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml", "domain": "https://www.nytimes.com"},
-    {"name": "Washington Post", "url": "https://feeds.washingtonpost.com/rss/national", "domain": "https://www.washingtonpost.com"},
-    {"name": "AP News", "url": "https://feedx.net/rss/ap.xml", "domain": "https://apnews.com"},
+    {"name": "CNN", "url": "http://rss.cnn.com/rss/cnn_topstories.rss", "domain": "https://edition.cnn.com"},
+    {"name": "Google News US", "url": "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en", "domain": "https://news.google.com"},
     {"name": "NPR News", "url": "https://feeds.npr.org/1001/rss.xml", "domain": "https://www.npr.org"},
     {"name": "CBS News", "url": "https://www.cbsnews.com/latest/rss/main", "domain": "https://www.cbsnews.com"}
 ]
@@ -56,23 +57,29 @@ def fetch_rss_items(sources):
         try:
             req = urllib.request.Request(
                 source["url"], 
-                headers={'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'}
+                headers={
+                    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+                }
             )
-            html = urllib.request.urlopen(req, context=context, timeout=8).read()
+            html = urllib.request.urlopen(req, context=context, timeout=9).read()
             feed = feedparser.parse(html)
             
-            for index, entry in enumerate(feed.entries[:4]):
-                title = entry.title.replace("\n", " ").strip()
-                link = entry.link.strip()
+            count = 0
+            for index, entry in enumerate(feed.entries[:5]):
+                title = getattr(entry, 'title', '').replace("\n", " ").strip()
+                link = getattr(entry, 'link', '').strip()
                 if link.startswith("/"):
                     link = source["domain"] + link
 
-                if title not in seen_titles:
+                if title and title not in seen_titles:
                     seen_titles.add(title)
                     badge = "[TOP_HEADLINE]" if index < 2 else "[SECONDARY]"
                     items.append(f"{badge} [{source['name']}] TITRE: {title} | LINK: {link}")
+                    count += 1
+            print(f"  ✓ {source['name']}: {count} articles récupérés", flush=True)
         except Exception as e:
-            print(f"⚠️ RSS {source['name']} : {e}", flush=True)
+            print(f"  ⚠️ RSS {source['name']} indisponible : {e}", flush=True)
             continue
                     
     return "\n".join(items)
@@ -83,15 +90,10 @@ def clean_url(raw_url):
 
 def sanitize_headline(text):
     text = text.strip().strip('"').strip("'")
-
-    # 1. Éliminer les traces parasites de prompts (REWRITTEN_HEADLINE, TITRE_REECRIT, HEADLINE:, etc.)
-    text = re.sub(r'(?i)\b(?:REWRITTEN_HEADLINE|TITRE_REECRIT|HEADLINE|TITRE)\b[\s:]*', '', text)
+    text = re.sub(r'(?i)\b(?:REWRITTEN_HEADLINE|TITRE_REECRIT|HEADLINE|TITRE|TITLE)\b[\s:]*', '', text)
     text = text.replace("|||", "").strip()
-
-    # 2. Apostrophe typographique courbe
     text = text.replace("'", "’")
 
-    # 3. Détection du Tout Majuscules (> 55% de lettres en majuscules)
     words = text.split()
     letters = [c for c in text if c.isalpha()]
     if letters:
@@ -117,7 +119,6 @@ def sanitize_headline(text):
                     new_words.append(w)
             text = " ".join(new_words)
 
-    # 4. Minuscule après deux-points sauf si c'est un acronyme
     def fix_colon(match):
         prefix, char, rest = match.group(1), match.group(2), match.group(3)
         word = char + rest
@@ -152,12 +153,12 @@ Voici la sélection des titres de la UNE des grands journaux français :
 Information actuellement affichée : "{current_h}"
 
 RÔLE : Rédacteur en Chef d'un média d'urgence en France ("L'Information Évidence du Moment").
-MISSION : Sélectionner l'actualité dominante avec une FORTE PRIORITÉ NATIONALE et rédiger un titre percutant.
+MISSION : Sélectionner la toute dernière actualité majeure dominante en France et rédiger un titre percutant.
 
 RÈGLES STRICTES :
 - Longueur : 80 caractères maximum.
-- CASSE DE PHRASE : Majuscule au début et aux noms propres. Tout le reste en minuscules.
-- CONSERVE EN MAJUSCULES les sigles (ex: RN, LFI, SNCF, UE, ONU, IA, PIB, OTAN, etc.).
+- CASSE DE PHRASE : Majuscule au tout début et aux noms propres. Tout le reste en minuscules.
+- CONSERVE EN MAJUSCULES les sigles légitimes (RN, LFI, SNCF, UE, ONU, IA, PIB, OTAN, etc.).
 - PAS DE TOUT EN MAJUSCULES.
 - PAS DE MAJUSCULE À CHAQUE MOT.
 - PAS DE MAJUSCULE APRÈS LES DEUX-POINTS.
@@ -168,23 +169,24 @@ TITRE|||LINK
 """
     else:
         prompt = f"""
-Here is the selection of top headlines from major US news outlets:
+Here is the selection of fresh top headlines from major US news outlets right now:
 {news_list}
 
 Current headline displayed: "{current_h}"
 
 ROLE: Editor-in-Chief of a high-urgency US news app ("The Essential News Right Now").
-MISSION: Select the dominant news story with a STRONG DOMESTIC NATIONAL PRIORITY and craft a sharp headline.
+MISSION: Select the SINGLE MOST IMPORTANT, BREAKING, or DOMINANT national news story right now in the United States and craft a sharp, direct headline.
 
-STRICT RULES:
-- Limit: 80 characters max.
+STRICT EDITORIAL RULES:
+- If a new major story is breaking or leading headlines today, UPDATE IT IMMEDIATELY.
+- Length: 80 characters max.
 - SENTENCE CASE ONLY: Capital letter only for the first word and proper nouns.
 - PRESERVE IN ALL CAPS legitimate acronyms (US, USA, EU, UN, FBI, CIA, USS, NATO, AI, GDP, etc.).
 - NO ALL CAPS for regular words.
 - NO Title Case.
 - Curly apostrophes (’).
 
-STRICT OUTPUT FORMAT (NOTHING ELSE, NO LABELS) :
+STRICT OUTPUT FORMAT (NOTHING ELSE, NO PREFIXES):
 TITLE|||LINK
 """
 
@@ -237,30 +239,34 @@ def update_html_files():
             print(f"⚠️ [HTML ERR] {filename} : {e}", flush=True)
 
 def check_and_update():
-    print(f"[{time.strftime('%H:%M:%S')}] --- ÉVALUATION STRICTE GEMINI ---", flush=True)
+    print(f"\n[{time.strftime('%H:%M:%S')}] === DÉBUT ANALYSE FLUX & GEMINI ===", flush=True)
     
-    # FR
+    # 1. Évaluation FR
+    print("-> Analyse France...", flush=True)
     try:
         news_fr = fetch_rss_items(SOURCES_FR)
         res_fr = evaluate_news("FR", news_fr)
         if res_fr and "|||" in res_fr:
             h, u = res_fr.split("|||", 1)
             current_news["FR"] = {"headline": sanitize_headline(h), "url": clean_url(u)}
+            print(f"  📢 FR : {current_news['FR']['headline']}", flush=True)
     except Exception as e:
         print(f"⚠️ Erreur FR : {e}", flush=True)
 
-    # US
+    # 2. Évaluation US
+    print("-> Analyse USA...", flush=True)
     try:
         news_us = fetch_rss_items(SOURCES_US)
         res_us = evaluate_news("US", news_us)
         if res_us and "|||" in res_us:
             h, u = res_us.split("|||", 1)
             current_news["US"] = {"headline": sanitize_headline(h), "url": clean_url(u)}
+            print(f"  📢 US : {current_news['US']['headline']}", flush=True)
     except Exception as e:
         print(f"⚠️ Erreur US : {e}", flush=True)
 
     update_html_files()
-    print("--- FIN ÉVALUATION GEMINI ---\n", flush=True)
+    print("=== FIN ANALYSE ===\n", flush=True)
 
 class InstantAppHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
