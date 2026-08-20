@@ -14,7 +14,7 @@ os.environ['TZ'] = 'Europe/Paris'
 if hasattr(time, 'tzset'):
     time.tzset()
 
-print("--> [START] Moteur Instant démarré (Flux US Ultra-Résilients)", flush=True)
+print("--> [START] Moteur Instant démarré (Support Endpoint JSON)", flush=True)
 
 current_news = {
     "FR": {"headline": "Analyse Gemini en cours...", "url": "https://news.google.fr"},
@@ -29,7 +29,6 @@ SOURCES_FR = [
     {"name": "BFM TV", "url": "https://www.bfmtv.com/rss/info/flux-rss/flux-toutes-les-actualites/", "domain": "https://www.bfmtv.com"}
 ]
 
-# Flux US certifiés ultra-stables (pas de 403 ni de proxy tiers)
 SOURCES_US = [
     {"name": "NY Times", "url": "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml", "domain": "https://www.nytimes.com"},
     {"name": "CNN", "url": "http://rss.cnn.com/rss/cnn_topstories.rss", "domain": "https://edition.cnn.com"},
@@ -65,7 +64,6 @@ def fetch_rss_items(sources):
             html = urllib.request.urlopen(req, context=context, timeout=9).read()
             feed = feedparser.parse(html)
             
-            count = 0
             for index, entry in enumerate(feed.entries[:5]):
                 title = getattr(entry, 'title', '').replace("\n", " ").strip()
                 link = getattr(entry, 'link', '').strip()
@@ -76,10 +74,7 @@ def fetch_rss_items(sources):
                     seen_titles.add(title)
                     badge = "[TOP_HEADLINE]" if index < 2 else "[SECONDARY]"
                     items.append(f"{badge} [{source['name']}] TITRE: {title} | LINK: {link}")
-                    count += 1
-            print(f"  ✓ {source['name']}: {count} articles récupérés", flush=True)
         except Exception as e:
-            print(f"  ⚠️ RSS {source['name']} indisponible : {e}", flush=True)
             continue
                     
     return "\n".join(items)
@@ -133,14 +128,12 @@ def sanitize_headline(text):
 def evaluate_news(lang, news_list):
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
-        print("❌ [GEMINI] Clé API introuvable.", flush=True)
         return None
 
     try:
         from google import genai
         client = genai.Client(api_key=api_key)
-    except Exception as e:
-        print(f"❌ [GEMINI] Échec import SDK: {e}", flush=True)
+    except Exception:
         return None
 
     current_h = current_news[lang]["headline"]
@@ -164,7 +157,7 @@ RÈGLES STRICTES :
 - PAS DE MAJUSCULE APRÈS LES DEUX-POINTS.
 - Apostrophe courbe (’).
 
-FORMAT DE SORTIE STRICT (AUCUN AUTRE MOT NI TEXTE) :
+FORMAT DE SORTIE STRICT :
 TITRE|||LINK
 """
     else:
@@ -178,7 +171,6 @@ ROLE: Editor-in-Chief of a high-urgency US news app ("The Essential News Right N
 MISSION: Select the SINGLE MOST IMPORTANT, BREAKING, or DOMINANT national news story right now in the United States and craft a sharp, direct headline.
 
 STRICT EDITORIAL RULES:
-- If a new major story is breaking or leading headlines today, UPDATE IT IMMEDIATELY.
 - Length: 80 characters max.
 - SENTENCE CASE ONLY: Capital letter only for the first word and proper nouns.
 - PRESERVE IN ALL CAPS legitimate acronyms (US, USA, EU, UN, FBI, CIA, USS, NATO, AI, GDP, etc.).
@@ -186,39 +178,22 @@ STRICT EDITORIAL RULES:
 - NO Title Case.
 - Curly apostrophes (’).
 
-STRICT OUTPUT FORMAT (NOTHING ELSE, NO PREFIXES):
+STRICT OUTPUT FORMAT :
 TITLE|||LINK
 """
 
-    preferred_models = ["gemini-3.6-flash", "gemini-3.5-flash"]
-    available_models = []
-    try:
-        for m in client.models.list():
-            name = m.name.replace("models/", "")
-            if "flash" in name or "pro" in name:
-                available_models.append(name)
-    except Exception:
-        pass
-
-    models_to_try = list(dict.fromkeys(preferred_models + available_models))
-
+    models_to_try = ["gemini-3.6-flash", "gemini-3.5-flash"]
     for m in models_to_try:
         try:
             res = client.models.generate_content(model=m, contents=prompt)
             if res and res.text and "|||" in res.text:
-                print(f"✅ [GEMINI] Modèle {m} ({lang})", flush=True)
                 return res.text.strip()
-        except Exception as e:
+        except Exception:
             continue
-            
-    print(f"❌ [GEMINI] Aucun modèle n'a répondu pour {lang}.", flush=True)
     return None
 
 def update_html_files():
-    json_payload = json.dumps({
-        "FR": current_news["FR"],
-        "US": current_news["US"]
-    }, ensure_ascii=False)
+    json_payload = json.dumps(current_news, ensure_ascii=False)
 
     for filename in ["app.html", "index.html"]:
         if not os.path.exists(filename):
@@ -234,42 +209,42 @@ def update_html_files():
             
             with open(filename, "w", encoding="utf-8") as f:
                 f.write(new_content)
-            print(f"--> [HTML OK] {filename} mis à jour", flush=True)
-        except Exception as e:
-            print(f"⚠️ [HTML ERR] {filename} : {e}", flush=True)
+        except Exception:
+            pass
 
 def check_and_update():
-    print(f"\n[{time.strftime('%H:%M:%S')}] === DÉBUT ANALYSE FLUX & GEMINI ===", flush=True)
-    
-    # 1. Évaluation FR
-    print("-> Analyse France...", flush=True)
     try:
         news_fr = fetch_rss_items(SOURCES_FR)
         res_fr = evaluate_news("FR", news_fr)
         if res_fr and "|||" in res_fr:
             h, u = res_fr.split("|||", 1)
             current_news["FR"] = {"headline": sanitize_headline(h), "url": clean_url(u)}
-            print(f"  📢 FR : {current_news['FR']['headline']}", flush=True)
-    except Exception as e:
-        print(f"⚠️ Erreur FR : {e}", flush=True)
+    except Exception:
+        pass
 
-    # 2. Évaluation US
-    print("-> Analyse USA...", flush=True)
     try:
         news_us = fetch_rss_items(SOURCES_US)
         res_us = evaluate_news("US", news_us)
         if res_us and "|||" in res_us:
             h, u = res_us.split("|||", 1)
             current_news["US"] = {"headline": sanitize_headline(h), "url": clean_url(u)}
-            print(f"  📢 US : {current_news['US']['headline']}", flush=True)
-    except Exception as e:
-        print(f"⚠️ Erreur US : {e}", flush=True)
+    except Exception:
+        pass
 
     update_html_files()
-    print("=== FIN ANALYSE ===\n", flush=True)
 
 class InstantAppHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
+        # API JSON pour Widget
+        if self.path.startswith('/api/news'):
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json; charset=utf-8')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+            self.end_headers()
+            self.wfile.write(json.dumps(current_news, ensure_ascii=False).encode('utf-8'))
+            return
+
         if self.path in ['/', '/index.html', '/app.html']:
             filename = "app.html" if os.path.exists("app.html") else "index.html"
             if os.path.exists(filename):
@@ -286,7 +261,6 @@ def run_http_server():
     port = int(os.environ.get("PORT", 10000))
     socketserver.TCPServer.allow_reuse_address = True
     with socketserver.TCPServer(("", port), InstantAppHandler) as httpd:
-        print(f"--> [SERVER] HTTP actif sur le port {port}", flush=True)
         httpd.serve_forever()
 
 threading.Thread(target=run_http_server, daemon=True).start()
