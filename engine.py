@@ -10,42 +10,42 @@ import threading
 import http.server
 import socketserver
 
-# Configuration du fuseau horaire
 os.environ['TZ'] = 'Europe/Paris'
 if hasattr(time, 'tzset'):
     time.tzset()
 
-print("--> [START] Moteur Instant démarré (PWA & Endpoint JSON)", flush=True)
+print("--> [START] Moteur Instant démarré (Restauration API Gemini + Endpoint Widget)", flush=True)
 
-# État des news (FR et US)
 current_news = {
     "FR": {"headline": "Analyse Gemini en cours...", "url": "https://news.google.fr"},
     "US": {"headline": "Gemini analysis in progress...", "url": "https://news.google.com"}
 }
 
-# Flux RSS sources
 SOURCES_FR = [
     {"name": "Le Monde", "url": "https://www.lemonde.fr/rss/une.xml", "domain": "https://www.lemonde.fr"},
     {"name": "Le Figaro", "url": "https://www.lefigaro.fr/rss/figaro_une.xml", "domain": "https://www.lefigaro.fr"},
-    {"name": "France Info", "url": "https://www.francetvinfo.fr/titres.rss", "domain": "https://www.francetvinfo.fr"}
+    {"name": "20 Minutes", "url": "https://www.20minutes.fr/feeds/rss-une.xml", "domain": "https://www.20minutes.fr"},
+    {"name": "France Info", "url": "https://www.francetvinfo.fr/titres.rss", "domain": "https://www.francetvinfo.fr"},
+    {"name": "BFM TV", "url": "https://www.bfmtv.com/rss/info/flux-rss/flux-toutes-les-actualites/", "domain": "https://www.bfmtv.com"}
 ]
 
 SOURCES_US = [
     {"name": "NY Times", "url": "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml", "domain": "https://www.nytimes.com"},
+    {"name": "CNN", "url": "http://rss.cnn.com/rss/cnn_topstories.rss", "domain": "https://edition.cnn.com"},
     {"name": "Google News US", "url": "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en", "domain": "https://news.google.com"},
-    {"name": "NPR News", "url": "https://feeds.npr.org/1001/rss.xml", "domain": "https://www.npr.org"}
+    {"name": "NPR News", "url": "https://feeds.npr.org/1001/rss.xml", "domain": "https://www.npr.org"},
+    {"name": "CBS News", "url": "https://www.cbsnews.com/latest/rss/main", "domain": "https://www.cbsnews.com"}
 ]
 
-# Liste d'acronymes à préserver en majuscules
 COMMON_ACRONYMS = {
     "US", "USA", "UE", "EU", "ONU", "UN", "OTAN", "NATO", "IA", "AI",
-    "GOP", "FBI", "CIA", "NSA", "DOJ", "DOGE", "SEC", "FDA", "CDC",
-    "SNCF", "RATP", "RN", "LFI", "PS", "LR", "NFP",
-    "PIB", "GDP", "TVA", "VAT", "BCE", "FED",
-    "COVID", "G7", "G20", "COP", "LLM", "API", "RSS"
+    "GOP", "FBI", "CIA", "NSA", "DOJ", "DOGE", "SEC", "FDA", "CDC", "EPA", "FAA", "USS",
+    "SNCF", "RATP", "EDF", "RN", "LFI", "PS", "LR", "EELV", "NFP", "PCF", "LREM",
+    "CDI", "CDD", "PIB", "GDP", "TVA", "VAT", "CAC40", "CAC", "BCE", "FED", "FMI", "IMF",
+    "OMS", "WHO", "OMC", "WTO", "JO", "OG", "IVG", "PMA", "PPR", "ZFE", "PASS",
+    "PDG", "CEO", "CFO", "CTO", "COO", "DRH", "RH", "HR", "VIP", "TV", "BD",
+    "COVID", "G7", "G20", "COP", "COP28", "COP29", "COP30", "LLM", "API", "RSS"
 }
-
-# --- FONCTIONS DE COLLECTE ET TRAITEMENT ---
 
 def fetch_rss_items(sources):
     context = ssl._create_unverified_context()
@@ -56,11 +56,9 @@ def fetch_rss_items(sources):
         try:
             req = urllib.request.Request(
                 source["url"], 
-                headers={
-                    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-                }
+                headers={'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'}
             )
-            html = urllib.request.urlopen(req, context=context, timeout=9).read()
+            html = urllib.request.urlopen(req, context=context, timeout=8).read()
             feed = feedparser.parse(html)
             
             for index, entry in enumerate(feed.entries[:4]):
@@ -71,7 +69,7 @@ def fetch_rss_items(sources):
 
                 if title and title not in seen_titles:
                     seen_titles.add(title)
-                    badge = "[TOP]" if index < 1 else "[SECONDARY]"
+                    badge = "[TOP]" if index < 2 else "[SEC]"
                     items.append(f"{badge} [{source['name']}] TITRE: {title} | LINK: {link}")
         except Exception:
             continue
@@ -86,14 +84,13 @@ def sanitize_headline(text):
     text = text.strip().strip('"').strip("'")
     text = re.sub(r'(?i)\b(?:REWRITTEN_HEADLINE|TITRE_REECRIT|HEADLINE|TITRE|TITLE)\b[\s:]*', '', text)
     text = text.replace("|||", "").strip()
-    text = text.replace("'", "’") # Apostrophe courbe Swiss style
+    text = text.replace("'", "’")
 
     words = text.split()
     letters = [c for c in text if c.isalpha()]
     if letters:
         upper_ratio = sum(1 for c in letters if c.isupper()) / len(letters)
-        # Détection du TOUT MAJUSCULES parasite
-        if upper_ratio > 0.60:
+        if upper_ratio > 0.55:
             new_words = []
             for w in words:
                 clean_w = re.sub(r'[^\w]', '', w).upper()
@@ -102,9 +99,9 @@ def sanitize_headline(text):
                 else:
                     new_words.append(w.lower())
             text = " ".join(new_words)
-            if len(text) > 0: text = text[0].upper() + text[1:]
+            if len(text) > 0:
+                text = text[0].upper() + text[1:]
         else:
-            # Préservation sélective des acronymes dans un texte normal
             new_words = []
             for w in words:
                 clean_w = re.sub(r'[^\w]', '', w).upper()
@@ -114,27 +111,29 @@ def sanitize_headline(text):
                     new_words.append(w)
             text = " ".join(new_words)
 
-    # Correction minuscule après les deux-points (sauf acronyme)
     def fix_colon(match):
         prefix, char, rest = match.group(1), match.group(2), match.group(3)
         word = char + rest
         clean_word = re.sub(r'[^\w]', '', word).upper()
-        if clean_word in COMMON_ACRONYMS: return prefix + word.upper()
+        if clean_word in COMMON_ACRONYMS:
+            return prefix + word.upper()
         return prefix + char.lower() + rest
 
     text = re.sub(r'(:\s+)([A-ZÀ-Ý])([a-zA-ZÀ-ÿ]*)', fix_colon, text)
     return text.strip()
 
-# --- ÉVALUATION GEMINI ---
-
 def evaluate_news(lang, news_list):
     api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key: return None
+    if not api_key:
+        print("❌ [GEMINI] Clé API absente.", flush=True)
+        return None
 
     try:
         from google import genai
         client = genai.Client(api_key=api_key)
-    except Exception: return None
+    except Exception as e:
+        print(f"❌ [GEMINI] Erreur SDK : {e}", flush=True)
+        return None
 
     current_h = current_news[lang]["headline"]
     
@@ -150,7 +149,7 @@ MISSION : Sélectionner l'actualité pivot majeure dominante en France et rédig
 
 RÈGLES STRICTES :
 - Longueur : 80 caractères maximum.
-- CASSE DE PHRASE : Majuscule au tout début et aux noms propres. Tout le reste en minuscules.
+- CASSE DE PHRASE : Majuscule au début et aux noms propres. Tout le reste en minuscules.
 - CONSERVE EN MAJUSCULES les sigles légitimes (RN, LFI, SNCF, UE, ONU, IA, PIB, OTAN, etc.).
 - PAS DE TOUT EN MAJUSCULES.
 - Apostrophe courbe (’).
@@ -166,7 +165,7 @@ Here is the selection of fresh top headlines from major US news outlets right no
 Current headline displayed: "{current_h}"
 
 ROLE: Editor-in-Chief of a high-urgency US news app ("The Essential News Right Now").
-MISSION: Select the SINGLE MOST IMPORTANT, BREAKING, or DOMINANT national news story in the USA and craft a sharp, direct headline.
+MISSION: Select the SINGLE MOST IMPORTANT, BREAKING, or DOMINANT national news story in the USA and craft a sharp headline.
 
 STRICT EDITORIAL RULES:
 - Length: 80 characters max.
@@ -179,20 +178,36 @@ STRICT OUTPUT FORMAT :
 TITLE|||LINK
 """
 
-    models_to_try = ["gemini-3.6-flash", "gemini-3.5-flash"]
+    preferred_models = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash"]
+    available_models = []
+    try:
+        for m in client.models.list():
+            name = m.name.replace("models/", "")
+            if "flash" in name or "pro" in name:
+                available_models.append(name)
+    except Exception:
+        pass
+
+    models_to_try = list(dict.fromkeys(preferred_models + available_models))
+
     for m in models_to_try:
         try:
             res = client.models.generate_content(model=m, contents=prompt)
             if res and res.text and "|||" in res.text:
+                print(f"✅ [GEMINI OK] Modèle {m} ({lang})", flush=True)
                 return res.text.strip()
-        except Exception: continue
+        except Exception:
+            continue
+            
+    print(f"❌ [GEMINI] Aucun modèle valide pour {lang}.", flush=True)
     return None
 
 def update_html_files():
     json_payload = json.dumps(current_news, ensure_ascii=False)
 
     for filename in ["app.html", "index.html"]:
-        if not os.path.exists(filename): continue
+        if not os.path.exists(filename):
+            continue
         try:
             with open(filename, "r", encoding="utf-8") as f:
                 content = f.read()
@@ -204,34 +219,40 @@ def update_html_files():
             
             with open(filename, "w", encoding="utf-8") as f:
                 f.write(new_content)
-        except Exception: pass
+        except Exception:
+            pass
 
 def check_and_update():
-    # Évaluation FR
+    print(f"\n[{time.strftime('%H:%M:%S')}] --- ÉVALUATION DES ACTUALITÉS ---", flush=True)
+    
+    # FR
     try:
         news_fr = fetch_rss_items(SOURCES_FR)
         res_fr = evaluate_news("FR", news_fr)
         if res_fr and "|||" in res_fr:
             h, u = res_fr.split("|||", 1)
             current_news["FR"] = {"headline": sanitize_headline(h), "url": clean_url(u)}
-    except Exception: pass
+            print(f"📢 FR: {current_news['FR']['headline']}", flush=True)
+    except Exception as e:
+        print(f"⚠️ Erreur FR : {e}", flush=True)
 
-    # Évaluation US
+    # US
     try:
         news_us = fetch_rss_items(SOURCES_US)
         res_us = evaluate_news("US", news_us)
         if res_us and "|||" in res_us:
             h, u = res_us.split("|||", 1)
             current_news["US"] = {"headline": sanitize_headline(h), "url": clean_url(u)}
-    except Exception: pass
+            print(f"📢 US: {current_news['US']['headline']}", flush=True)
+    except Exception as e:
+        print(f"⚠️ Erreur US : {e}", flush=True)
 
     update_html_files()
-
-# --- SERVEUR HTTP AVEC SUPPORT PWA (MANIFEST.JSON) ---
+    print("--- FIN ÉVALUATION ---\n", flush=True)
 
 class InstantAppHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
-        # 1. Route /api/news (pour le Widget Scriptable/KWGT)
+        # Route Widget JSON
         if self.path.startswith('/api/news'):
             self.send_response(200)
             self.send_header('Content-type', 'application/json; charset=utf-8')
@@ -241,27 +262,23 @@ class InstantAppHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(json.dumps(current_news, ensure_ascii=False).encode('utf-8'))
             return
 
-        # 2. Route /manifest.json (Correction PWA 404)
+        # Route Manifest PWA
         if self.path == '/manifest.json':
             manifest_content = {
                 "short_name": "Instant",
-                "name": "INSTANT - L'Info Évidence",
-                "description": "L'information dominante du moment, condensée en une seule phrase, mise à jour par l'IA.",
-                "icons": [], # Tu pourras ajouter des icônes plus tard
+                "name": "INSTANT",
                 "start_url": "/?pwa=1",
-                "display": "standalone", # Mode application (plein écran)
-                "orientation": "portrait",
-                "background_color": "#000000", # Fond OLED noir
+                "display": "standalone",
+                "background_color": "#000000",
                 "theme_color": "#000000"
             }
             self.send_response(200)
             self.send_header('Content-type', 'application/json; charset=utf-8')
-            self.send_header('Cache-Control', 'public, max-age=86400') # Cache 1 jour
             self.end_headers()
             self.wfile.write(json.dumps(manifest_content, ensure_ascii=False).encode('utf-8'))
             return
 
-        # 3. Route / (Page d'accueil HTML)
+        # HTML
         if self.path in ['/', '/index.html', '/app.html']:
             filename = "app.html" if os.path.exists("app.html") else "index.html"
             if os.path.exists(filename):
@@ -272,8 +289,6 @@ class InstantAppHandler(http.server.SimpleHTTPRequestHandler):
                 with open(filename, 'rb') as f:
                     self.wfile.write(f.read())
                 return
-        
-        # Par défaut : laisser faire SimpleHTTPRequestHandler (renverra 404)
         return super().do_GET()
 
 def run_http_server():
@@ -282,16 +297,12 @@ def run_http_server():
     with socketserver.TCPServer(("", port), InstantAppHandler) as httpd:
         httpd.serve_forever()
 
-# --- LANCEMENT DES THREADS ---
-
 threading.Thread(target=run_http_server, daemon=True).start()
 threading.Thread(target=check_and_update, daemon=True).start()
 
-# Planification des mises à jour toutes les 30 minutes
 schedule.every().hour.at(":00").do(lambda: threading.Thread(target=check_and_update, daemon=True).start())
 schedule.every().hour.at(":30").do(lambda: threading.Thread(target=check_and_update, daemon=True).start())
 
-# Boucle principale du scheduler
 while True:
     schedule.run_pending()
     time.sleep(1)
