@@ -14,7 +14,7 @@ os.environ['TZ'] = 'Europe/Paris'
 if hasattr(time, 'tzset'):
     time.tzset()
 
-print("--> [START] Moteur Instant (Priorité Gemini 3.6 Flash / 3.5 Flash)", flush=True)
+print("--> [START] Moteur Instant (Prompt Original Editorial + Gemini 3.6/3.5 Flash)", flush=True)
 
 current_news = {
     "FR": {"headline": "Analyse en cours...", "url": "https://news.google.fr"},
@@ -145,17 +145,18 @@ Voici la sélection des titres de la UNE des grands médias français :
 Information actuellement affichée : "{current_h}"
 
 RÔLE : Rédacteur en Chef d'un média d'urgence en France ("L'Information Évidence du Moment").
-MISSION : Sélectionner l'unique information pivot dominante en France à cet instant précis (consensus fort entre médias).
+MISSION : Sélectionner l'unique information pivot dominante en France à cet instant précis, en privilégiant le consensus entre plusieurs sources.
 
-DIRECTIVES DE CONCISION & STYLE :
-1. ULTRA-COURT : 70 caractères maximum.
-2. SYNTHÈSE PURE : Sujet + Verbe d'action + Objet. Va droit au fait brut, élimine tout détail secondaire.
-3. INTERDITS : Pas de clickbait, pas de points de suspension, pas de "Voici ce que...".
-4. CASSE : Majuscule au début et aux noms propres uniquement.
-5. SIGLES : Conserve en MAJUSCULES les sigles légitimes (RN, LFI, SNCF, UE, ONU, IA, PIB, OTAN, etc.).
-6. TYPOGRAPHIE : Apostrophe courbe (’).
+DIRECTIVES ÉDITORIALES STRICTES :
+1. CONSENSUS & GRAVITÉ : Choisis un événement majeur partagé par plusieurs rédactions ou une alerte nationale urgente. Pas de faits divers mineurs ni d'articles de magazine froids.
+2. SYNTHÈSE FACTUELLE : Rédige une phrase autonome, informative et percutante (Sujet + Verbe d'action).
+3. INTERDITS FORMELS : Pas de clickbait, pas de points de suspension, pas de "Voici ce que l'on sait".
+4. LONGUEUR : 85 caractères maximum.
+5. CASSE DE PHRASE : Majuscule au début et aux noms propres. Tout le reste en minuscules.
+6. ACRONYMES : Conserve en capitales les sigles légitimes (ex: RN, LFI, SNCF, UE, ONU, IA, PIB, OTAN, etc.).
+7. TYPOGRAPHIE : Apostrophe courbe (’) obligatoire.
 
-FORMAT DE SORTIE STRICT :
+FORMAT DE SORTIE STRICT (AUCUN AUTRE MOT, AUCUNE BALISE) :
 TITRE|||LINK
 """
     else:
@@ -166,17 +167,18 @@ Here is the selection of top headlines from major US news outlets:
 Current headline displayed: "{current_h}"
 
 ROLE: Editor-in-Chief of a minimalist breaking news app ("The Essential Headline").
-MISSION: Select the SINGLE MOST IMPORTANT national news story right now in the US (consensus across outlets).
+MISSION: Select the SINGLE MOST IMPORTANT, BREAKING, or DOMINANT national news story right now in the United States, backed by consensus across outlets.
 
-CONCISION & STYLE DIRECTIVES:
-1. ULTRA-CRISP: 70 characters maximum.
-2. PURE CORE: Subject + Verb + Direct Object. State the raw essential event, cut secondary details.
-3. PROHIBITIONS: No clickbait, no ellipsis, no teaser phrases.
-4. CASSE: Sentence case (capital for first letter and proper nouns only).
-5. ACRONYMS: Preserve in ALL CAPS standard acronyms (US, USA, EU, UN, FBI, CIA, USS, NATO, AI, GDP, etc.).
-6. TYPOGRAPHY: Curly apostrophes (’).
+STRICT EDITORIAL DIRECTIVES:
+1. CONSENSUS & WEIGHT: Prioritize top breaking national events covered across multiple front pages. Avoid routine lifestyle, soft features, or minor local updates.
+2. FACTUAL PUNCH: Craft a single, crisp sentence stating the core event (Subject + Action Verb).
+3. STRICT PROHIBITIONS: No clickbait, no ellipsis, no teaser questions ("Here is what to know").
+4. LENGTH: 85 characters maximum.
+5. SENTENCE CASE ONLY: Capitalize only the first letter and proper nouns.
+6. ACRONYMS: Preserve in ALL CAPS standard acronyms (US, USA, EU, UN, FBI, CIA, USS, NATO, AI, GDP, etc.).
+7. TYPOGRAPHY: Curly apostrophes (’).
 
-STRICT OUTPUT FORMAT:
+STRICT OUTPUT FORMAT (NO INTRO, NO LABELS) :
 TITLE|||LINK
 """
 
