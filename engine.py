@@ -14,18 +14,18 @@ os.environ['TZ'] = 'Europe/Paris'
 if hasattr(time, 'tzset'):
     time.tzset()
 
-print("--> [START] Moteur Instant démarré (Restauration API Gemini + Endpoint Widget)", flush=True)
+print("--> [START] Moteur Instant (Priorité Gemini 3.6 Flash / 3.5 Flash)", flush=True)
 
 current_news = {
-    "FR": {"headline": "Analyse Gemini en cours...", "url": "https://news.google.fr"},
-    "US": {"headline": "Gemini analysis in progress...", "url": "https://news.google.com"}
+    "FR": {"headline": "Analyse en cours...", "url": "https://news.google.fr"},
+    "US": {"headline": "Analysis in progress...", "url": "https://news.google.com"}
 }
 
 SOURCES_FR = [
     {"name": "Le Monde", "url": "https://www.lemonde.fr/rss/une.xml", "domain": "https://www.lemonde.fr"},
     {"name": "Le Figaro", "url": "https://www.lefigaro.fr/rss/figaro_une.xml", "domain": "https://www.lefigaro.fr"},
-    {"name": "20 Minutes", "url": "https://www.20minutes.fr/feeds/rss-une.xml", "domain": "https://www.20minutes.fr"},
     {"name": "France Info", "url": "https://www.francetvinfo.fr/titres.rss", "domain": "https://www.francetvinfo.fr"},
+    {"name": "20 Minutes", "url": "https://www.20minutes.fr/feeds/rss-une.xml", "domain": "https://www.20minutes.fr"},
     {"name": "BFM TV", "url": "https://www.bfmtv.com/rss/info/flux-rss/flux-toutes-les-actualites/", "domain": "https://www.bfmtv.com"}
 ]
 
@@ -61,7 +61,7 @@ def fetch_rss_items(sources):
             html = urllib.request.urlopen(req, context=context, timeout=8).read()
             feed = feedparser.parse(html)
             
-            for index, entry in enumerate(feed.entries[:4]):
+            for index, entry in enumerate(feed.entries[:5]):
                 title = getattr(entry, 'title', '').replace("\n", " ").strip()
                 link = getattr(entry, 'link', '').strip()
                 if link.startswith("/"):
@@ -69,7 +69,7 @@ def fetch_rss_items(sources):
 
                 if title and title not in seen_titles:
                     seen_titles.add(title)
-                    badge = "[TOP]" if index < 2 else "[SEC]"
+                    badge = "[TOP_HEADLINE]" if index < 2 else "[SECONDARY]"
                     items.append(f"{badge} [{source['name']}] TITRE: {title} | LINK: {link}")
         except Exception:
             continue
@@ -139,56 +139,54 @@ def evaluate_news(lang, news_list):
     
     if lang == "FR":
         prompt = f"""
-Voici la sélection des titres de la UNE des grands journaux français :
+Voici la sélection des titres de la UNE des grands médias français :
 {news_list}
 
 Information actuellement affichée : "{current_h}"
 
 RÔLE : Rédacteur en Chef d'un média d'urgence en France ("L'Information Évidence du Moment").
-MISSION : Sélectionner l'actualité pivot majeure dominante en France et rédiger un titre percutant.
+MISSION : Sélectionner l'unique information pivot dominante en France à cet instant précis (consensus fort entre médias).
 
-RÈGLES STRICTES :
-- Longueur : 80 caractères maximum.
-- CASSE DE PHRASE : Majuscule au début et aux noms propres. Tout le reste en minuscules.
-- CONSERVE EN MAJUSCULES les sigles légitimes (RN, LFI, SNCF, UE, ONU, IA, PIB, OTAN, etc.).
-- PAS DE TOUT EN MAJUSCULES.
-- Apostrophe courbe (’).
+DIRECTIVES DE CONCISION & STYLE :
+1. ULTRA-COURT : 70 caractères maximum.
+2. SYNTHÈSE PURE : Sujet + Verbe d'action + Objet. Va droit au fait brut, élimine tout détail secondaire.
+3. INTERDITS : Pas de clickbait, pas de points de suspension, pas de "Voici ce que...".
+4. CASSE : Majuscule au début et aux noms propres uniquement.
+5. SIGLES : Conserve en MAJUSCULES les sigles légitimes (RN, LFI, SNCF, UE, ONU, IA, PIB, OTAN, etc.).
+6. TYPOGRAPHIE : Apostrophe courbe (’).
 
 FORMAT DE SORTIE STRICT :
 TITRE|||LINK
 """
     else:
         prompt = f"""
-Here is the selection of fresh top headlines from major US news outlets right now:
+Here is the selection of top headlines from major US news outlets:
 {news_list}
 
 Current headline displayed: "{current_h}"
 
-ROLE: Editor-in-Chief of a high-urgency US news app ("The Essential News Right Now").
-MISSION: Select the SINGLE MOST IMPORTANT, BREAKING, or DOMINANT national news story in the USA and craft a sharp headline.
+ROLE: Editor-in-Chief of a minimalist breaking news app ("The Essential Headline").
+MISSION: Select the SINGLE MOST IMPORTANT national news story right now in the US (consensus across outlets).
 
-STRICT EDITORIAL RULES:
-- Length: 80 characters max.
-- SENTENCE CASE ONLY: Capital letter only for the first word and proper nouns.
-- PRESERVE IN ALL CAPS legitimate acronyms (US, USA, EU, UN, FBI, CIA, USS, NATO, AI, GDP, etc.).
-- NO ALL CAPS for regular words.
-- Curly apostrophes (’).
+CONCISION & STYLE DIRECTIVES:
+1. ULTRA-CRISP: 70 characters maximum.
+2. PURE CORE: Subject + Verb + Direct Object. State the raw essential event, cut secondary details.
+3. PROHIBITIONS: No clickbait, no ellipsis, no teaser phrases.
+4. CASSE: Sentence case (capital for first letter and proper nouns only).
+5. ACRONYMS: Preserve in ALL CAPS standard acronyms (US, USA, EU, UN, FBI, CIA, USS, NATO, AI, GDP, etc.).
+6. TYPOGRAPHY: Curly apostrophes (’).
 
-STRICT OUTPUT FORMAT :
+STRICT OUTPUT FORMAT:
 TITLE|||LINK
 """
 
-    preferred_models = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash"]
-    available_models = []
-    try:
-        for m in client.models.list():
-            name = m.name.replace("models/", "")
-            if "flash" in name or "pro" in name:
-                available_models.append(name)
-    except Exception:
-        pass
-
-    models_to_try = list(dict.fromkeys(preferred_models + available_models))
+    models_to_try = [
+        "gemini-3.6-flash",
+        "gemini-3.5-flash",
+        "gemini-2.5-flash",
+        "gemini-2.5-pro",
+        "gemini-2.0-flash"
+    ]
 
     for m in models_to_try:
         try:
@@ -196,10 +194,11 @@ TITLE|||LINK
             if res and res.text and "|||" in res.text:
                 print(f"✅ [GEMINI OK] Modèle {m} ({lang})", flush=True)
                 return res.text.strip()
-        except Exception:
+        except Exception as err:
+            print(f"  ↳ Tentative {m} : {err}", flush=True)
             continue
             
-    print(f"❌ [GEMINI] Aucun modèle valide pour {lang}.", flush=True)
+    print(f"❌ [GEMINI] Aucun modèle n'a pu répondre pour {lang}.", flush=True)
     return None
 
 def update_html_files():
@@ -223,7 +222,7 @@ def update_html_files():
             pass
 
 def check_and_update():
-    print(f"\n[{time.strftime('%H:%M:%S')}] --- ÉVALUATION DES ACTUALITÉS ---", flush=True)
+    print(f"\n[{time.strftime('%H:%M:%S')}] --- ÉVALUATION GEMINI ---", flush=True)
     
     # FR
     try:
@@ -232,7 +231,7 @@ def check_and_update():
         if res_fr and "|||" in res_fr:
             h, u = res_fr.split("|||", 1)
             current_news["FR"] = {"headline": sanitize_headline(h), "url": clean_url(u)}
-            print(f"📢 FR: {current_news['FR']['headline']}", flush=True)
+            print(f"📢 [FR] {current_news['FR']['headline']}", flush=True)
     except Exception as e:
         print(f"⚠️ Erreur FR : {e}", flush=True)
 
@@ -243,7 +242,7 @@ def check_and_update():
         if res_us and "|||" in res_us:
             h, u = res_us.split("|||", 1)
             current_news["US"] = {"headline": sanitize_headline(h), "url": clean_url(u)}
-            print(f"📢 US: {current_news['US']['headline']}", flush=True)
+            print(f"📢 [US] {current_news['US']['headline']}", flush=True)
     except Exception as e:
         print(f"⚠️ Erreur US : {e}", flush=True)
 
@@ -252,7 +251,14 @@ def check_and_update():
 
 class InstantAppHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
-        # Route Widget JSON
+        if self.path in ['/ping', '/cron', '/refresh']:
+            threading.Thread(target=check_and_update, daemon=True).start()
+            self.send_response(200)
+            self.send_header('Content-type', 'text/plain; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(b"OK - Refresh triggered")
+            return
+
         if self.path.startswith('/api/news'):
             self.send_response(200)
             self.send_header('Content-type', 'application/json; charset=utf-8')
@@ -262,7 +268,6 @@ class InstantAppHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(json.dumps(current_news, ensure_ascii=False).encode('utf-8'))
             return
 
-        # Route Manifest PWA
         if self.path == '/manifest.json':
             manifest_content = {
                 "short_name": "Instant",
@@ -278,7 +283,6 @@ class InstantAppHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(json.dumps(manifest_content, ensure_ascii=False).encode('utf-8'))
             return
 
-        # HTML
         if self.path in ['/', '/index.html', '/app.html']:
             filename = "app.html" if os.path.exists("app.html") else "index.html"
             if os.path.exists(filename):
