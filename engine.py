@@ -14,7 +14,7 @@ os.environ['TZ'] = 'Europe/Paris'
 if hasattr(time, 'tzset'):
     time.tzset()
 
-print("--> [START] Moteur Instant (Pipeline: 3.6-flash > 3.5-flash > flash-lite-latest)", flush=True)
+print("--> [START] Moteur Instant (Filtre anti-faits divers strict + format 60-90 car.)", flush=True)
 
 current_news = {
     "FR": {"headline": "Analyse en cours...", "url": "https://news.google.fr"},
@@ -145,14 +145,14 @@ Voici la sélection des titres de la UNE des grands médias français :
 Information actuellement affichée : "{current_h}"
 
 RÔLE : Rédacteur en Chef d'un média d'urgence en France ("L'Information Évidence du Moment").
-MISSION : Sélectionner l'unique fait concret dominant en France à cet instant précis.
+MISSION : Sélectionner l'unique information pivot d'envergure nationale ou internationale majeure.
 
-HIÉRARCHIE ET DIRECTIVES ÉDITORIALES STRICTES :
-1. FAITS CONCRETS VS DÉCLARATIONS : Privilégie les actes et événements réels (vote de loi, remaniement acté, crise sociale/grève, décision de justice majeure, catastrophe, traité signé). REJETTE FORMELLEMENT les petites phrases, réactions politiques, clashs, postures, déclarations d'intention sans acte concret ou commentaires d'opinion ("X tacle Y", "Z estime que", "A fustige B").
-2. PROXIMITÉ & CONSENSUS : Choisis en priorité un événement pivot touchant directement la France ou l'Europe qui fait la Une simultanée de plusieurs rédactions.
-3. INTERNATIONAL : Ne retiens une actualité étrangère que si c'est une rupture historique mondiale majeure partagée unanimement par les Unes.
-4. SYNTHÈSE FACTUELLE : Rédige une phrase autonome, nette et factuelle (Sujet + Verbe d'action + Objet).
-5. LONGUEUR : 85 caractères maximum.
+DIRECTIVES ÉDITORIALES STRICTES :
+1. INTERDICTION FORMELLE DES FAITS DIVERS : Rejette systématiquement tout meurtre local, accident, agression, disparition ou fait divers criminel isolé, même s'il figure en Une.
+2. FAITS STRUCTURANTS : Privilégie les événements institutionnels majeurs, crises nationales/internationales, traités, décisions économiques, géopolitique critique ou alertes sanitaires/sécuritaires globales.
+3. PAS DE PETITES PHRASES : Rejette les clashs politiques, réactions, punchlines et déclarations d'opinion sans acte concret.
+4. SYNTHÈSE COMPLÈTE : Rédige une phrase autonome et informative donnant le fait ET son contexte clé (Sujet + Action + Contexte). Évite les titres tronqués ou ultra-minimalistes sans substance.
+5. LONGUEUR : Entre 60 et 90 caractères (maximum 90 caractères).
 6. CASSE : Majuscule au début et aux noms propres uniquement. Tout le reste en minuscules.
 7. SIGLES : Conserve en MAJUSCULES les sigles légitimes (RN, LFI, SNCF, UE, ONU, IA, PIB, OTAN, etc.).
 8. TYPOGRAPHIE : Apostrophe courbe (’) obligatoire.
@@ -168,14 +168,14 @@ Here is the selection of top headlines from major US news outlets:
 Current headline displayed: "{current_h}"
 
 ROLE: Editor-in-Chief of a minimalist breaking news app ("The Essential Headline").
-MISSION: Select the SINGLE MOST IMPORTANT concrete national news event in the US right now.
+MISSION: Select the SINGLE MOST IMPORTANT structural national or global news story right now.
 
 STRICT EDITORIAL DIRECTIVES:
-1. HARD FACTS OVER POLITICAL RHETORIC: Prioritize tangible events (laws passed, executive orders signed, official court rulings, crises, disaster alerts). STRICTLY REJECT political chatter, soundbites, feud headlines, and pundit reactions ("X slams Y", "Z criticizes", "A reacts to").
-2. PROXIMITY & CONSENSUS: Focus on national breaking stories covered simultaneously across multiple front pages.
-3. WORLD EVENTS: Retain international news only if it represents a major global crisis or historic turning point.
-4. FACTUAL PUNCH: Craft a single, crisp sentence stating the tangible event (Subject + Action Verb).
-5. LENGTH: 85 characters maximum.
+1. STRICT CRIME & LOCAL NEWS BAN: Absolutely no local homicides, accidents, shootings without national policy impact, or isolated crimes.
+2. STRUCTURAL EVENTS: Prioritize major national policy, supreme court rulings, geopolitical shifts, significant economic shifts, or global crises.
+3. NO PUNDITRY: Reject political feuds, statements, commentary, or reaction pieces.
+4. INFORMATIVE SYNTHESIS: Write a complete, standalone informative sentence with key context (Subject + Action Verb + Context). Avoid overly terse fragments.
+5. LENGTH: Between 60 and 90 characters (90 characters maximum).
 6. SENTENCE CASE ONLY: Capitalize only the first letter and proper nouns.
 7. ACRONYMS: Preserve in ALL CAPS standard acronyms (US, USA, EU, UN, FBI, CIA, USS, NATO, AI, GDP, etc.).
 8. TYPOGRAPHY: Curly apostrophes (’).
