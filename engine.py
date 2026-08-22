@@ -14,7 +14,7 @@ os.environ['TZ'] = 'Europe/Paris'
 if hasattr(time, 'tzset'):
     time.tzset()
 
-print("--> [START] Moteur Instant (Filtre strict Faits concrets vs Petites phrases)", flush=True)
+print("--> [START] Moteur Instant (Pipeline: 3.6-flash > 3.5-flash > flash-lite-latest)", flush=True)
 
 current_news = {
     "FR": {"headline": "Analyse en cours...", "url": "https://news.google.fr"},
@@ -187,19 +187,18 @@ TITLE|||LINK
     models_to_try = [
         "gemini-3.6-flash",
         "gemini-3.5-flash",
-        "gemini-2.5-flash",
-        "gemini-2.5-pro",
-        "gemini-2.0-flash"
+        "gemini-flash-lite-latest"
     ]
 
     for m in models_to_try:
         try:
             res = client.models.generate_content(model=m, contents=prompt)
             if res and res.text and "|||" in res.text:
-                print(f"✅ [GEMINI OK] Modèle {m} ({lang})", flush=True)
+                print(f"✅ [GEMINI OK] Modèle : {m} ({lang})", flush=True)
                 return res.text.strip()
         except Exception as err:
-            print(f"  ↳ Tentative {m} : {err}", flush=True)
+            err_str = str(err)
+            print(f"  ↳ Tentative {m} : {err_str[:120]}...", flush=True)
             continue
             
     print(f"❌ [GEMINI] Aucun modèle n'a pu répondre pour {lang}.", flush=True)
