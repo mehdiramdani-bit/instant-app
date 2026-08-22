@@ -14,7 +14,7 @@ os.environ['TZ'] = 'Europe/Paris'
 if hasattr(time, 'tzset'):
     time.tzset()
 
-print("--> [START] Moteur Instant (Ajustement: Alertes budgétaires/institutionnelles permises)", flush=True)
+print("--> [START] Moteur Instant (Sélection stricte Fait Pivot National / Consensus)", flush=True)
 
 current_news = {
     "FR": {"headline": "Analyse en cours...", "url": "https://news.google.fr"},
@@ -135,16 +135,16 @@ Voici la sélection des titres de la UNE des grands médias français :
 
 Information actuellement affichée : "{current_h}"
 
-RÔLE : Rédacteur en Chef d'un média d'urgence en France ("L'Information Évidence du Moment").
-MISSION : Sélectionner l'unique information pivot d'envergure nationale ou internationale majeure.
+RÔLE : Rédacteur en Chef d'un média d'urgence nationale ("L'Information Évidence du Moment").
+MISSION : Extraire l'UNIQUE information pivot dont tout le pays parle à cet instant précis.
 
-DIRECTIVES ÉDITORIALES STRICTES :
-1. INTERDICTION DES FAITS DIVERS : Rejette tout meurtre local, accident, agression ou fait divers isolé.
-2. ÉVÉNEMENTS STRUCTURANTS ET ALERTES NATIONALES : Privilégie les actes majeurs, crises institutionnelles/géopolitiques ainsi que les alertes budgétaires, économiques et sécuritaires de premier plan. Rejette les polémiques partisanes secondaires et querelles de personnes.
-3. STYLE & FORMAT : Sois direct et concis. L'utilisation d'un mot-clé thématique suivi de deux-points est autorisée pour synthétiser (ex : "Dette : Sébastien Lecornu met en garde...", "Ukraine : Emmanuel Macron annonce...").
-4. NOMS PROPRES ET MAJUSCULES : Conserve scrupuleusement la majuscule à TOUS les prénoms, noms propres et pays, y compris après les deux-points (ex : "Ukraine : Emmanuel Macron").
-5. LONGUEUR STRICTE : 50 à 75 caractères maximum.
-6. SIGLES : MAJUSCULES obligatoires pour les sigles reconnus (RN, LFI, SNCF, UE, ONU, IA, PIB, OTAN, etc.).
+MÉCANIQUE DE SÉLECTION STRICTE :
+1. LE TEST DU CONSENSUS : Privilégie absolument un sujet couvert simultanément par PLUSIEURS rédactions (Le Monde, Figaro, France Info, BFM). Si une actu n'est présente que sur un seul flux, ignore-la.
+2. CRITÈRE D'IMPACT : Retiens l'événement à plus fort impact sur l'État, les institutions, l'économie nationale ou la géopolitique mondiale (crise politique/budgétaire majeure, guerre, traité, décision judiciaire d'État).
+3. EXCLUSIONS TOTALES : Écarte systématiquement les faits divers individuels (crimes locaux, accidents), les clashs politiciens sans conséquence institutionnelle, le sport de routine et les dossiers magazine froids.
+4. FORMAT & TON : Direct, percutant et sans jargon. Format télégraphique autorisé avec deux-points (ex : "Dette : Sébastien Lecornu alerte sur le risque de désordre budgétaire").
+5. LONGUEUR : 50 à 75 caractères maximum.
+6. MAJUSCULES : Conserve scrupuleusement la majuscule aux noms propres et pays (même après les deux-points) et pour les sigles réels (RN, LFI, SNCF, UE, ONU, etc.).
 7. TYPOGRAPHIE : Apostrophe courbe (’) obligatoire.
 
 FORMAT DE SORTIE STRICT (AUCUN AUTRE MOT, AUCUNE BALISE) :
@@ -158,15 +158,15 @@ Here is the selection of top headlines from major US news outlets:
 Current headline displayed: "{current_h}"
 
 ROLE: Editor-in-Chief of a minimalist breaking news app ("The Essential Headline").
-MISSION: Select the SINGLE MOST IMPORTANT structural national or global news story right now.
+MISSION: Extract the SINGLE MOST CRITICAL national or global news story of this exact moment.
 
-STRICT EDITORIAL DIRECTIVES:
-1. NO LOCAL CRIME / FAITS DIVERS: Zero isolated accidents, crimes, or soft features.
-2. STRUCTURAL EVENTS: Prioritize major policy, supreme court rulings, geopolitical shifts, or critical crises. Reject political feud chatter.
-3. STYLE & FORMAT: Crisp and direct. Topic headers with a colon are permitted if they make the headline shorter (e.g. "Ukraine: White House approves...").
-4. PROPER NOUNS: Keep accurate capitalization for all proper names and countries, even after a colon.
+STRICT SELECTION MECHANICS:
+1. CONSENSUS RULE: Prioritize stories simultaneously covered across MULTIPLE major newsrooms. If a story is only on one feed, discard it.
+2. IMPACT CRITERIA: Select the event with the highest structural consequence on national governance, the economy, or global security.
+3. STRICT EXCLUSIONS: Zero local crime, accidents, isolated shootings, soft magazine topics, or partisan feud commentary.
+4. FORMAT & TONE: Direct, authoritative, and concise. Topic headers with a colon are permitted (e.g. "Economy: Fed warns against inflation resurgence").
 5. STRICT LENGTH: 50 to 75 characters maximum.
-6. ACRONYMS: Preserve recognized acronyms in ALL CAPS (US, USA, EU, UN, FBI, CIA, USS, NATO, AI, GDP, etc.).
+6. CAPITALIZATION: Keep exact uppercase for proper nouns, country names, and acronyms (US, USA, EU, UN, FBI, CIA, USS, NATO, AI, GDP, etc.).
 7. TYPOGRAPHY: Curly apostrophes (’).
 
 STRICT OUTPUT FORMAT (NO INTRO, NO LABELS) :
