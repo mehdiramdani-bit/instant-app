@@ -14,7 +14,7 @@ os.environ['TZ'] = 'Europe/Paris'
 if hasattr(time, 'tzset'):
     time.tzset()
 
-print("--> [START] Moteur Instant (Prompt Original Editorial + Gemini 3.6/3.5 Flash)", flush=True)
+print("--> [START] Moteur Instant (Filtre strict Faits concrets vs Petites phrases)", flush=True)
 
 current_news = {
     "FR": {"headline": "Analyse en cours...", "url": "https://news.google.fr"},
@@ -145,16 +145,17 @@ Voici la sélection des titres de la UNE des grands médias français :
 Information actuellement affichée : "{current_h}"
 
 RÔLE : Rédacteur en Chef d'un média d'urgence en France ("L'Information Évidence du Moment").
-MISSION : Sélectionner l'unique information pivot dominante en France à cet instant précis, en privilégiant le consensus entre plusieurs sources.
+MISSION : Sélectionner l'unique fait concret dominant en France à cet instant précis.
 
-DIRECTIVES ÉDITORIALES STRICTES :
-1. CONSENSUS & GRAVITÉ : Choisis un événement majeur partagé par plusieurs rédactions ou une alerte nationale urgente. Pas de faits divers mineurs ni d'articles de magazine froids.
-2. SYNTHÈSE FACTUELLE : Rédige une phrase autonome, informative et percutante (Sujet + Verbe d'action).
-3. INTERDITS FORMELS : Pas de clickbait, pas de points de suspension, pas de "Voici ce que l'on sait".
-4. LONGUEUR : 85 caractères maximum.
-5. CASSE DE PHRASE : Majuscule au début et aux noms propres. Tout le reste en minuscules.
-6. ACRONYMES : Conserve en capitales les sigles légitimes (ex: RN, LFI, SNCF, UE, ONU, IA, PIB, OTAN, etc.).
-7. TYPOGRAPHIE : Apostrophe courbe (’) obligatoire.
+HIÉRARCHIE ET DIRECTIVES ÉDITORIALES STRICTES :
+1. FAITS CONCRETS VS DÉCLARATIONS : Privilégie les actes et événements réels (vote de loi, remaniement acté, crise sociale/grève, décision de justice majeure, catastrophe, traité signé). REJETTE FORMELLEMENT les petites phrases, réactions politiques, clashs, postures, déclarations d'intention sans acte concret ou commentaires d'opinion ("X tacle Y", "Z estime que", "A fustige B").
+2. PROXIMITÉ & CONSENSUS : Choisis en priorité un événement pivot touchant directement la France ou l'Europe qui fait la Une simultanée de plusieurs rédactions.
+3. INTERNATIONAL : Ne retiens une actualité étrangère que si c'est une rupture historique mondiale majeure partagée unanimement par les Unes.
+4. SYNTHÈSE FACTUELLE : Rédige une phrase autonome, nette et factuelle (Sujet + Verbe d'action + Objet).
+5. LONGUEUR : 85 caractères maximum.
+6. CASSE : Majuscule au début et aux noms propres uniquement. Tout le reste en minuscules.
+7. SIGLES : Conserve en MAJUSCULES les sigles légitimes (RN, LFI, SNCF, UE, ONU, IA, PIB, OTAN, etc.).
+8. TYPOGRAPHIE : Apostrophe courbe (’) obligatoire.
 
 FORMAT DE SORTIE STRICT (AUCUN AUTRE MOT, AUCUNE BALISE) :
 TITRE|||LINK
@@ -167,16 +168,17 @@ Here is the selection of top headlines from major US news outlets:
 Current headline displayed: "{current_h}"
 
 ROLE: Editor-in-Chief of a minimalist breaking news app ("The Essential Headline").
-MISSION: Select the SINGLE MOST IMPORTANT, BREAKING, or DOMINANT national news story right now in the United States, backed by consensus across outlets.
+MISSION: Select the SINGLE MOST IMPORTANT concrete national news event in the US right now.
 
 STRICT EDITORIAL DIRECTIVES:
-1. CONSENSUS & WEIGHT: Prioritize top breaking national events covered across multiple front pages. Avoid routine lifestyle, soft features, or minor local updates.
-2. FACTUAL PUNCH: Craft a single, crisp sentence stating the core event (Subject + Action Verb).
-3. STRICT PROHIBITIONS: No clickbait, no ellipsis, no teaser questions ("Here is what to know").
-4. LENGTH: 85 characters maximum.
-5. SENTENCE CASE ONLY: Capitalize only the first letter and proper nouns.
-6. ACRONYMS: Preserve in ALL CAPS standard acronyms (US, USA, EU, UN, FBI, CIA, USS, NATO, AI, GDP, etc.).
-7. TYPOGRAPHY: Curly apostrophes (’).
+1. HARD FACTS OVER POLITICAL RHETORIC: Prioritize tangible events (laws passed, executive orders signed, official court rulings, crises, disaster alerts). STRICTLY REJECT political chatter, soundbites, feud headlines, and pundit reactions ("X slams Y", "Z criticizes", "A reacts to").
+2. PROXIMITY & CONSENSUS: Focus on national breaking stories covered simultaneously across multiple front pages.
+3. WORLD EVENTS: Retain international news only if it represents a major global crisis or historic turning point.
+4. FACTUAL PUNCH: Craft a single, crisp sentence stating the tangible event (Subject + Action Verb).
+5. LENGTH: 85 characters maximum.
+6. SENTENCE CASE ONLY: Capitalize only the first letter and proper nouns.
+7. ACRONYMS: Preserve in ALL CAPS standard acronyms (US, USA, EU, UN, FBI, CIA, USS, NATO, AI, GDP, etc.).
+8. TYPOGRAPHY: Curly apostrophes (’).
 
 STRICT OUTPUT FORMAT (NO INTRO, NO LABELS) :
 TITLE|||LINK
