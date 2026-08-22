@@ -14,7 +14,7 @@ os.environ['TZ'] = 'Europe/Paris'
 if hasattr(time, 'tzset'):
     time.tzset()
 
-print("--> [START] Moteur Instant (Fix acronyme 'un' -> ONU)", flush=True)
+print("--> [START] Moteur Instant (Format télégraphique autorisé avec ':' + Majuscules préservées)", flush=True)
 
 current_news = {
     "FR": {"headline": "Analyse en cours...", "url": "https://news.google.fr"},
@@ -37,7 +37,6 @@ SOURCES_US = [
     {"name": "CBS News", "url": "https://www.cbsnews.com/latest/rss/main", "domain": "https://www.cbsnews.com"}
 ]
 
-# 'UN' retiré pour éviter de convertir l'article français 'un' en majuscules (le sigle FR est 'ONU')
 COMMON_ACRONYMS = {
     "US", "USA", "UE", "EU", "ONU", "OTAN", "NATO", "IA", "AI",
     "GOP", "FBI", "CIA", "NSA", "DOJ", "DOGE", "SEC", "FDA", "CDC", "EPA", "FAA", "USS",
@@ -112,15 +111,6 @@ def sanitize_headline(text):
                     new_words.append(w)
             text = " ".join(new_words)
 
-    def fix_colon(match):
-        prefix, char, rest = match.group(1), match.group(2), match.group(3)
-        word = char + rest
-        clean_word = re.sub(r'[^\w]', '', word).upper()
-        if clean_word in COMMON_ACRONYMS:
-            return prefix + word.upper()
-        return prefix + char.lower() + rest
-
-    text = re.sub(r'(:\s+)([A-ZÀ-Ý])([a-zA-ZÀ-ÿ]*)', fix_colon, text)
     return text.strip()
 
 def evaluate_news(lang, news_list):
@@ -149,14 +139,13 @@ RÔLE : Rédacteur en Chef d'un média d'urgence en France ("L'Information Évid
 MISSION : Sélectionner l'unique information pivot d'envergure nationale ou internationale majeure.
 
 DIRECTIVES ÉDITORIALES STRICTES :
-1. INTERDICTION FORMELLE DES FAITS DIVERS : Rejette systématiquement tout meurtre local, accident, agression, disparition ou fait divers criminel isolé, même s'il figure en Une.
-2. FAITS STRUCTURANTS : Privilégie les événements institutionnels majeurs, crises nationales/internationales, traités, décisions économiques, géopolitique critique ou alertes sanitaires/sécuritaires globales.
-3. PAS DE PETITES PHRASES : Rejette les clashs politiques, réactions, punchlines et déclarations d'opinion sans acte concret.
-4. SYNTHÈSE COMPLÈTE : Rédige une phrase autonome et informative donnant le fait ET son contexte clé (Sujet + Action + Contexte). Évite les titres tronqués ou ultra-minimalistes sans substance.
-5. LONGUEUR : Entre 60 et 90 caractères (maximum 90 caractères).
-6. CASSE : Majuscule au début et aux noms propres uniquement. Tout le reste en minuscules.
-7. SIGLES : Conserve en MAJUSCULES les sigles légitimes (RN, LFI, SNCF, UE, ONU, IA, PIB, OTAN, etc.).
-8. TYPOGRAPHIE : Apostrophe courbe (’) obligatoire.
+1. INTERDICTION DES FAITS DIVERS : Rejette tout meurtre local, accident, agression ou fait divers isolé.
+2. ÉVÉNEMENTS STRUCTURANTS : Privilégie les actes et décisions majeurs (traités, réformes actées, crises institutionnelles/géopolitiques critiques). Rejette les petites phrases et polémiques sans acte concret.
+3. STYLE & FORMAT : Sois direct et concis. L'utilisation d'un mot-clé thématique suivi de deux-points est autorisée pour synthétiser (ex : "Ukraine : Emmanuel Macron annonce..." ou "Budget : le Parlement adopte...").
+4. NOMS PROPRES ET MAJUSCULES : Conserve scrupuleusement la majuscule à TOUS les prénoms, noms propres et pays, y compris après les deux-points (ex : "Ukraine : Emmanuel Macron").
+5. LONGUEUR STRICTE : 50 à 75 caractères maximum.
+6. SIGLES : MAJUSCULES obligatoires pour les sigles reconnus (RN, LFI, SNCF, UE, ONU, IA, PIB, OTAN, etc.).
+7. TYPOGRAPHIE : Apostrophe courbe (’) obligatoire.
 
 FORMAT DE SORTIE STRICT (AUCUN AUTRE MOT, AUCUNE BALISE) :
 TITRE|||LINK
@@ -172,14 +161,13 @@ ROLE: Editor-in-Chief of a minimalist breaking news app ("The Essential Headline
 MISSION: Select the SINGLE MOST IMPORTANT structural national or global news story right now.
 
 STRICT EDITORIAL DIRECTIVES:
-1. STRICT CRIME & LOCAL NEWS BAN: Absolutely no local homicides, accidents, shootings without national policy impact, or isolated crimes.
-2. STRUCTURAL EVENTS: Prioritize major national policy, supreme court rulings, geopolitical shifts, significant economic shifts, or global crises.
-3. NO PUNDITRY: Reject political feuds, statements, commentary, or reaction pieces.
-4. INFORMATIVE SYNTHESIS: Write a complete, standalone informative sentence with key context (Subject + Action Verb + Context). Avoid overly terse fragments.
-5. LENGTH: Between 60 and 90 characters (90 characters maximum).
-6. SENTENCE CASE ONLY: Capitalize only the first letter and proper nouns.
-7. ACRONYMS: Preserve in ALL CAPS standard acronyms (US, USA, EU, UN, FBI, CIA, USS, NATO, AI, GDP, etc.).
-8. TYPOGRAPHY: Curly apostrophes (’).
+1. NO LOCAL CRIME / FAITS DIVERS: Zero isolated accidents, crimes, or soft features.
+2. STRUCTURAL EVENTS: Prioritize major policy, supreme court rulings, geopolitical shifts, or critical crises. Reject political feud chatter.
+3. STYLE & FORMAT: Crisp and direct. Topic headers with a colon are permitted if they make the headline shorter (e.g. "Ukraine: White House approves...").
+4. PROPER NOUNS: Keep accurate capitalization for all proper names and countries, even after a colon.
+5. STRICT LENGTH: 50 to 75 characters maximum.
+6. ACRONYMS: Preserve recognized acronyms in ALL CAPS (US, USA, EU, UN, FBI, CIA, USS, NATO, AI, GDP, etc.).
+7. TYPOGRAPHY: Curly apostrophes (’).
 
 STRICT OUTPUT FORMAT (NO INTRO, NO LABELS) :
 TITLE|||LINK
