@@ -14,7 +14,7 @@ os.environ['TZ'] = 'Europe/Paris'
 if hasattr(time, 'tzset'):
     time.tzset()
 
-print("--> [START] Moteur Instant (Filtre anti-faits divers strict + format 60-90 car.)", flush=True)
+print("--> [START] Moteur Instant (Fix acronyme 'un' -> ONU)", flush=True)
 
 current_news = {
     "FR": {"headline": "Analyse en cours...", "url": "https://news.google.fr"},
@@ -37,8 +37,9 @@ SOURCES_US = [
     {"name": "CBS News", "url": "https://www.cbsnews.com/latest/rss/main", "domain": "https://www.cbsnews.com"}
 ]
 
+# 'UN' retiré pour éviter de convertir l'article français 'un' en majuscules (le sigle FR est 'ONU')
 COMMON_ACRONYMS = {
-    "US", "USA", "UE", "EU", "ONU", "UN", "OTAN", "NATO", "IA", "AI",
+    "US", "USA", "UE", "EU", "ONU", "OTAN", "NATO", "IA", "AI",
     "GOP", "FBI", "CIA", "NSA", "DOJ", "DOGE", "SEC", "FDA", "CDC", "EPA", "FAA", "USS",
     "SNCF", "RATP", "EDF", "RN", "LFI", "PS", "LR", "EELV", "NFP", "PCF", "LREM",
     "CDI", "CDD", "PIB", "GDP", "TVA", "VAT", "CAC40", "CAC", "BCE", "FED", "FMI", "IMF",
