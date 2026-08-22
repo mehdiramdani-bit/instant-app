@@ -14,7 +14,7 @@ os.environ['TZ'] = 'Europe/Paris'
 if hasattr(time, 'tzset'):
     time.tzset()
 
-print("--> [START] Moteur Instant (Format télégraphique autorisé avec ':' + Majuscules préservées)", flush=True)
+print("--> [START] Moteur Instant (Ajustement: Alertes budgétaires/institutionnelles permises)", flush=True)
 
 current_news = {
     "FR": {"headline": "Analyse en cours...", "url": "https://news.google.fr"},
@@ -140,8 +140,8 @@ MISSION : Sélectionner l'unique information pivot d'envergure nationale ou inte
 
 DIRECTIVES ÉDITORIALES STRICTES :
 1. INTERDICTION DES FAITS DIVERS : Rejette tout meurtre local, accident, agression ou fait divers isolé.
-2. ÉVÉNEMENTS STRUCTURANTS : Privilégie les actes et décisions majeurs (traités, réformes actées, crises institutionnelles/géopolitiques critiques). Rejette les petites phrases et polémiques sans acte concret.
-3. STYLE & FORMAT : Sois direct et concis. L'utilisation d'un mot-clé thématique suivi de deux-points est autorisée pour synthétiser (ex : "Ukraine : Emmanuel Macron annonce..." ou "Budget : le Parlement adopte...").
+2. ÉVÉNEMENTS STRUCTURANTS ET ALERTES NATIONALES : Privilégie les actes majeurs, crises institutionnelles/géopolitiques ainsi que les alertes budgétaires, économiques et sécuritaires de premier plan. Rejette les polémiques partisanes secondaires et querelles de personnes.
+3. STYLE & FORMAT : Sois direct et concis. L'utilisation d'un mot-clé thématique suivi de deux-points est autorisée pour synthétiser (ex : "Dette : Sébastien Lecornu met en garde...", "Ukraine : Emmanuel Macron annonce...").
 4. NOMS PROPRES ET MAJUSCULES : Conserve scrupuleusement la majuscule à TOUS les prénoms, noms propres et pays, y compris après les deux-points (ex : "Ukraine : Emmanuel Macron").
 5. LONGUEUR STRICTE : 50 à 75 caractères maximum.
 6. SIGLES : MAJUSCULES obligatoires pour les sigles reconnus (RN, LFI, SNCF, UE, ONU, IA, PIB, OTAN, etc.).
