@@ -14,7 +14,7 @@ os.environ['TZ'] = 'Europe/Paris'
 if hasattr(time, 'tzset'):
     time.tzset()
 
-print("--> [START] Moteur Instant (Nouveaux Prompts Éditoriaux FR & US)", flush=True)
+print("--> [START] Moteur Instant (Hiérarchie de l'information + Cible 75 car.)", flush=True)
 
 current_news = {
     "FR": {"headline": "Analyse en cours...", "url": "https://news.google.fr"},
@@ -194,19 +194,33 @@ RÈGLES FACTUELLES
 - Ne transforme pas une intention en événement accompli.
 - Ne dramatise jamais artificiellement une information.
 
-TITRE
-Direct, factuel, percutant et compréhensible immédiatement.
+STRUCTURE DU TITRE
+Direct, factuel, percutant et immédiatement compréhensible.
 Un format avec deux-points est autorisé.
-Évite le sensationnalisme et le jargon.
+Évite le sensationnalisme, le clickbait et le jargon inutile.
 
-LONGUEUR
-45 à 80 caractères maximum.
-Vise idéalement environ 60 caractères.
-La clarté et l’exactitude sont prioritaires sur la contrainte de longueur.
+HIÉRARCHIE DE L'INFORMATION
+Quand l’espace le permet, priorise les informations dans cet ordre :
+1. CE QUI s’est passé (l’événement central)
+2. QUI ou QUOI est impliqué (les acteurs clés)
+3. La CONSÉQUENCE ou le CONTEXTE déterminant
+
+Intègre la conséquence ou le contexte dès lors qu’il améliore nettement la compréhension.
+Supprime les détails secondaires avant de rogner sur l’événement principal.
+
+LONGUEUR DU TITRE
+Cible : environ 75 caractères.
+Fourchette visée : 65 à 80 caractères (75 caractères étant l’idéal).
+Exploite l’espace disponible pour maximiser l’information utile.
+
+Ne raccourcis pas un titre dans le seul but de le rendre plus bref si un fait supplémentaire le rend plus informatif.
+N’ajoute aucun mot de remplissage pour atteindre artificiellement la longueur cible.
+La clarté, l’exactitude factuelle et la densité d’information priment sur le décompte exact de caractères.
+Ne produis jamais un titre vague si les informations fournies permettent d’être précis.
 
 TYPOGRAPHIE
-Conserve les majuscules des noms propres, pays et sigles réels
-(RN, LFI, SNCF, UE, ONU, etc.).
+Conserve les majuscules des noms propres, pays et sigles réels (RN, LFI, SNCF, UE, ONU, etc.).
+Conserve la majuscule aux noms propres même après un deux-points.
 Utilise l’apostrophe courbe (’).
 
 SORTIE STRICTE
@@ -287,14 +301,30 @@ Direct, factual, authoritative, and immediately understandable.
 A topic header followed by a colon is allowed.
 Avoid sensationalism, clickbait, and unnecessary jargon.
 
-LENGTH
-45 to 80 characters maximum.
-Aim for approximately 60 characters when possible.
-Clarity and factual accuracy take priority over the length constraint.
+HEADLINE STRUCTURE
+When space allows, prioritize information in this order:
+1. WHAT happened
+2. WHO or WHAT is involved
+3. KEY consequence or context
+
+Include the consequence or context when it materially improves understanding.
+Remove secondary details before removing the core event.
+
+HEADLINE LENGTH
+Target approximately 75 characters.
+
+Aim for 65–80 characters, with 75 characters as the preferred target.
+Use the available space to maximize useful information.
+
+Do not shorten a headline merely to make it more concise if additional factual information would make it more useful.
+Do not add filler words just to reach the target length.
+
+Clarity, factual accuracy, and information density take priority over exact character count.
+Never use a vague headline when the supplied information allows for a more specific one.
 
 CAPITALIZATION & TYPOGRAPHY
-Preserve correct capitalization for proper nouns, countries, and genuine acronyms
-(US, USA, EU, UN, FBI, CIA, NATO, AI, GDP, etc.).
+Preserve correct capitalization for proper nouns, countries, and genuine acronyms (US, USA, EU, UN, FBI, CIA, NATO, AI, GDP, etc.).
+Preserve capitalization on proper nouns even following a colon.
 Use curly apostrophes (’) only.
 
 STRICT OUTPUT
