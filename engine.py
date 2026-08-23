@@ -14,7 +14,7 @@ os.environ['TZ'] = 'Europe/Paris'
 if hasattr(time, 'tzset'):
     time.tzset()
 
-print("--> [START] Moteur Instant (Hiérarchie de l'information + Cible 75 car.)", flush=True)
+print("--> [START] Moteur Instant (Calibrage 65-80 car. / idéal ~70 car.)", flush=True)
 
 current_news = {
     "FR": {"headline": "Analyse en cours...", "url": "https://news.google.fr"},
@@ -209,8 +209,8 @@ Intègre la conséquence ou le contexte dès lors qu’il améliore nettement la
 Supprime les détails secondaires avant de rogner sur l’événement principal.
 
 LONGUEUR DU TITRE
-Cible : environ 75 caractères.
-Fourchette visée : 65 à 80 caractères (75 caractères étant l’idéal).
+Cible : idéalement environ 70 caractères.
+Fourchette visée : 65 à 80 caractères.
 Exploite l’espace disponible pour maximiser l’information utile.
 
 Ne raccourcis pas un titre dans le seul but de le rendre plus bref si un fait supplémentaire le rend plus informatif.
@@ -311,9 +311,9 @@ Include the consequence or context when it materially improves understanding.
 Remove secondary details before removing the core event.
 
 HEADLINE LENGTH
-Target approximately 75 characters.
+Target approximately 70 characters.
 
-Aim for 65–80 characters, with 75 characters as the preferred target.
+Aim for 65–80 characters, with 70 characters as the preferred target.
 Use the available space to maximize useful information.
 
 Do not shorten a headline merely to make it more concise if additional factual information would make it more useful.
