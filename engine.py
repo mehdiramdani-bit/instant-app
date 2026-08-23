@@ -14,7 +14,7 @@ os.environ['TZ'] = 'Europe/Paris'
 if hasattr(time, 'tzset'):
     time.tzset()
 
-print("--> [START] Moteur Instant (Sélection stricte Fait Pivot National / Consensus)", flush=True)
+print("--> [START] Moteur Instant (Nouveaux Prompts Éditoriaux FR & US)", flush=True)
 
 current_news = {
     "FR": {"headline": "Analyse en cours...", "url": "https://news.google.fr"},
@@ -129,49 +129,180 @@ def evaluate_news(lang, news_list):
     current_h = current_news[lang]["headline"]
     
     if lang == "FR":
-        prompt = f"""
-Voici la sélection des titres de la UNE des grands médias français :
+        prompt = f"""Voici les titres actuellement présents à la UNE de plusieurs grands médias français :
 {news_list}
 
-Information actuellement affichée : "{current_h}"
+Titre actuellement affiché dans l’application :
+"{current_h}"
 
-RÔLE : Rédacteur en Chef d'un média d'urgence nationale ("L'Information Évidence du Moment").
-MISSION : Extraire l'UNIQUE information pivot dont tout le pays parle à cet instant précis.
+RÔLE
+Tu es le rédacteur en chef d’une application de breaking news minimaliste.
+Sa promesse : ne montrer que l’information qui compte vraiment maintenant.
 
-MÉCANIQUE DE SÉLECTION STRICTE :
-1. LE TEST DU CONSENSUS : Privilégie absolument un sujet couvert simultanément par PLUSIEURS rédactions (Le Monde, Figaro, France Info, BFM). Si une actu n'est présente que sur un seul flux, ignore-la.
-2. CRITÈRE D'IMPACT : Retiens l'événement à plus fort impact sur l'État, les institutions, l'économie nationale ou la géopolitique mondiale (crise politique/budgétaire majeure, guerre, traité, décision judiciaire d'État).
-3. EXCLUSIONS TOTALES : Écarte systématiquement les faits divers individuels (crimes locaux, accidents), les clashs politiciens sans conséquence institutionnelle, le sport de routine et les dossiers magazine froids.
-4. FORMAT & TON : Direct, percutant et sans jargon. Format télégraphique autorisé avec deux-points (ex : "Dette : Sébastien Lecornu alerte sur le risque de désordre budgétaire").
-5. LONGUEUR : 50 à 75 caractères maximum.
-6. MAJUSCULES : Conserve scrupuleusement la majuscule aux noms propres et pays (même après les deux-points) et pour les sigles réels (RN, LFI, SNCF, UE, ONU, etc.).
-7. TYPOGRAPHIE : Apostrophe courbe (’) obligatoire.
+MISSION
+À partir des titres fournis, identifie UNE SEULE information qui mérite d’être affichée maintenant.
 
-FORMAT DE SORTIE STRICT (AUCUN AUTRE MOT, AUCUNE BALISE) :
+Le bon choix est l’événement concret qui, à cet instant, a le plus fort mélange de :
+1. IMPACT : conséquences réelles pour le pays, la population, l’économie, les institutions ou la sécurité.
+2. FRAÎCHEUR : événement nouveau ou développement significatif très récent.
+3. PORTÉE : nombre de personnes potentiellement concernées.
+4. CONSENSUS : plusieurs rédactions indépendantes couvrent le même événement.
+5. GRAVITÉ : importance intrinsèque de l’événement, même si la couverture médiatique est encore limitée.
+
+IMPORTANT
+Le consensus médiatique est un SIGNAL, pas une condition obligatoire.
+Une information majeure peut être sélectionnée même si elle n’apparaît encore que dans un seul flux.
+
+COMPARAISON AVEC LE TITRE ACTUEL
+Ne remplace pas le titre actuel simplement parce qu’une autre information est importante.
+
+Le nouveau sujet doit clairement être :
+- plus important,
+- ou plus récent et significatif,
+- ou plus susceptible d’avoir des conséquences immédiates.
+
+Si aucune information ne constitue une amélioration claire par rapport au titre actuel, conserve le titre actuel.
+
+PRIORITÉS
+Privilégie notamment :
+- catastrophe ou alerte majeure,
+- guerre, attaque ou crise géopolitique majeure,
+- décision gouvernementale ou institutionnelle ayant des conséquences immédiates,
+- loi, vote ou décision de justice majeure,
+- crise économique ou financière majeure,
+- changement majeur affectant la vie quotidienne d’une large partie de la population,
+- événement international ayant des conséquences importantes pour la France.
+
+POLITIQUE
+Les sujets politiques sont pertinents lorsqu’ils correspondent à un changement concret de pouvoir, de gouvernement, de politique publique, d’institution ou de stabilité nationale.
+
+EXCLUSIONS
+Écarte :
+- spéculations électorales et stratégies pour des scrutins futurs,
+- candidatures et ambitions politiques,
+- petites phrases et déclarations sans conséquence concrète,
+- querelles partisanes,
+- faits divers locaux sans portée nationale,
+- résultats sportifs ordinaires,
+- sujets lifestyle, culturels ou magazine,
+- informations anciennes simplement remises en avant.
+
+RÈGLES FACTUELLES
+- Ne déduis aucun fait qui n’est pas suffisamment étayé par les titres fournis.
+- Si plusieurs médias décrivent le même événement avec des détails différents, ne conserve que les faits compatibles entre eux.
+- Ne transforme pas une déclaration en décision.
+- Ne transforme pas une intention en événement accompli.
+- Ne dramatise jamais artificiellement une information.
+
+TITRE
+Direct, factuel, percutant et compréhensible immédiatement.
+Un format avec deux-points est autorisé.
+Évite le sensationnalisme et le jargon.
+
+LONGUEUR
+45 à 80 caractères maximum.
+Vise idéalement environ 60 caractères.
+La clarté et l’exactitude sont prioritaires sur la contrainte de longueur.
+
+TYPOGRAPHIE
+Conserve les majuscules des noms propres, pays et sigles réels
+(RN, LFI, SNCF, UE, ONU, etc.).
+Utilise l’apostrophe courbe (’).
+
+SORTIE STRICTE
+Retourne exactement :
+
 TITRE|||LINK
-"""
+
+Aucun autre texte."""
     else:
-        prompt = f"""
-Here is the selection of top headlines from major US news outlets:
+        prompt = f"""Here are the headlines currently appearing on the front pages of major US news outlets:
 {news_list}
 
-Current headline displayed: "{current_h}"
+Current headline displayed in the app:
+"{current_h}"
 
-ROLE: Editor-in-Chief of a minimalist breaking news app ("The Essential Headline").
-MISSION: Extract the SINGLE MOST CRITICAL national or global news story of this exact moment.
+ROLE
+You are the Editor-in-Chief of a minimalist breaking news app.
+Its promise: show only the information that genuinely matters right now.
 
-STRICT SELECTION MECHANICS:
-1. CONSENSUS RULE: Prioritize stories simultaneously covered across MULTIPLE major newsrooms. If a story is only on one feed, discard it.
-2. IMPACT CRITERIA: Select the event with the highest structural consequence on national governance, the economy, or global security.
-3. STRICT EXCLUSIONS: Zero local crime, accidents, isolated shootings, soft magazine topics, or partisan feud commentary.
-4. FORMAT & TONE: Direct, authoritative, and concise. Topic headers with a colon are permitted (e.g. "Economy: Fed warns against inflation resurgence").
-5. STRICT LENGTH: 50 to 75 characters maximum.
-6. CAPITALIZATION: Keep exact uppercase for proper nouns, country names, and acronyms (US, USA, EU, UN, FBI, CIA, USS, NATO, AI, GDP, etc.).
-7. TYPOGRAPHY: Curly apostrophes (’).
+MISSION
+From the headlines provided, identify ONE SINGLE story that deserves to be displayed now.
 
-STRICT OUTPUT FORMAT (NO INTRO, NO LABELS) :
+The right choice is the concrete event with the strongest combination of:
+1. IMPACT: real consequences for people, the country, the economy, institutions, or national security.
+2. FRESHNESS: a new event or a significant recent development.
+3. REACH: the number of people potentially affected.
+4. CONSENSUS: independent newsrooms covering the same event.
+5. SEVERITY: the intrinsic importance of the event, even when media coverage is still limited.
+
+IMPORTANT
+Media consensus is a SIGNAL, not a mandatory requirement.
+A major breaking story can be selected even if it currently appears in only one feed.
+
+COMPARISON WITH THE CURRENT HEADLINE
+Do not replace the current headline simply because another story is important.
+
+The new story must clearly be:
+- more important,
+- or more recent and significant,
+- or more likely to have immediate consequences.
+
+If no story is a clear improvement over the current headline, keep the current headline.
+
+PRIORITIES
+Prioritize:
+- major disasters or critical alerts,
+- war, attacks, or major geopolitical crises,
+- major government or institutional decisions with immediate consequences,
+- major legislation passed or major Supreme Court decisions,
+- major economic or financial developments,
+- major changes affecting everyday life for a large part of the population,
+- major international events with significant consequences for the United States.
+
+POLITICS
+Political stories qualify when they represent a concrete change in government, policy, institutional power, law, public order, or national stability.
+
+EXCLUSIONS
+Reject:
+- future electoral speculation and campaign strategy,
+- candidate positioning and early campaign moves,
+- partisan horse-race coverage,
+- political soundbites or statements without concrete consequences,
+- political feuds and rhetorical clashes,
+- isolated local crime or accidents,
+- routine sports results,
+- lifestyle, entertainment, or soft magazine stories,
+- old stories merely receiving renewed coverage.
+
+FACTUAL RULES
+- Do not infer facts that are not sufficiently supported by the supplied headlines.
+- When multiple outlets describe the same event differently, use only facts that are consistent across sources.
+- Never turn a statement into a decision.
+- Never turn an intention into an accomplished event.
+- Never artificially dramatize a story.
+
+HEADLINE
+Direct, factual, authoritative, and immediately understandable.
+A topic header followed by a colon is allowed.
+Avoid sensationalism, clickbait, and unnecessary jargon.
+
+LENGTH
+45 to 80 characters maximum.
+Aim for approximately 60 characters when possible.
+Clarity and factual accuracy take priority over the length constraint.
+
+CAPITALIZATION & TYPOGRAPHY
+Preserve correct capitalization for proper nouns, countries, and genuine acronyms
+(US, USA, EU, UN, FBI, CIA, NATO, AI, GDP, etc.).
+Use curly apostrophes (’) only.
+
+STRICT OUTPUT
+Return exactly:
+
 TITLE|||LINK
-"""
+
+No other text."""
 
     models_to_try = [
         "gemini-3.6-flash",
