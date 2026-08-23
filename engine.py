@@ -14,7 +14,7 @@ os.environ['TZ'] = 'Europe/Paris'
 if hasattr(time, 'tzset'):
     time.tzset()
 
-print("--> [START] Moteur Instant (Calibrage 65-75 car. / idéal ~70 car.)", flush=True)
+print("--> [START] Moteur Instant (Filtre Justice: Uniquement figures d'État de 1er plan)", flush=True)
 
 current_news = {
     "FR": {"headline": "Analyse en cours...", "url": "https://news.google.fr"},
@@ -168,21 +168,26 @@ Privilégie notamment :
 - catastrophe ou alerte majeure,
 - guerre, attaque ou crise géopolitique majeure,
 - décision gouvernementale ou institutionnelle ayant des conséquences immédiates,
-- loi, vote ou décision de justice majeure,
+- loi, vote ou décision de justice d’État majeure,
 - crise économique ou financière majeure,
 - changement majeur affectant la vie quotidienne d’une large partie de la population,
 - événement international ayant des conséquences importantes pour la France.
+
+JUSTICE ET PROCÉDURES
+- Retiens uniquement les affaires judiciaires visant des personnalités de tout premier plan de l'État (chefs d'État, membres du gouvernement, dirigeants majeurs) ou les arrêts des juridictions suprêmes (Conseil d'État, Conseil constitutionnel).
+- Écarte systématiquement toutes les affaires pénales, gardes à vue, détentions provisoires ou procès visant des particuliers, des figures secondaires ou des protagonistes de faits divers.
 
 POLITIQUE
 Les sujets politiques sont pertinents lorsqu’ils correspondent à un changement concret de pouvoir, de gouvernement, de politique publique, d’institution ou de stabilité nationale.
 
 EXCLUSIONS
 Écarte :
+- affaires judiciaires/criminelles de particuliers ou de faits divers,
 - spéculations électorales et stratégies pour des scrutins futurs,
 - candidatures et ambitions politiques,
 - petites phrases et déclarations sans conséquence concrète,
 - querelles partisanes,
-- faits divers locaux sans portée nationale,
+- faits divers locaux ou individuels sans portée nationale,
 - résultats sportifs ordinaires,
 - sujets lifestyle, culturels ou magazine,
 - informations anciennes simplement remises en avant.
@@ -274,11 +279,16 @@ Prioritize:
 - major changes affecting everyday life for a large part of the population,
 - major international events with significant consequences for the United States.
 
+LEGAL & JUDICIAL PROCEEDINGS
+- Include legal and criminal proceedings ONLY when they target top-tier national leaders (Heads of State, cabinet members, high constitutional figures) or major Supreme Court rulings.
+- Strictly exclude criminal cases, arrests, or trials involving private citizens, local figures, or individuals famous merely through a past local incident.
+
 POLITICS
 Political stories qualify when they represent a concrete change in government, policy, institutional power, law, public order, or national stability.
 
 EXCLUSIONS
 Reject:
+- criminal proceedings or arrests of private individuals,
 - future electoral speculation and campaign strategy,
 - candidate positioning and early campaign moves,
 - partisan horse-race coverage,
