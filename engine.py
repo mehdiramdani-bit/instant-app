@@ -525,6 +525,11 @@ Choisis UNE story. Deux possibilités :
 
 Pour changer, il faut une vraie supériorité éditoriale. Si deux stories sont proches, KEEP.
 
+SUJET UNIQUE ET STRICT (INTERDICTION DES TITRES CHIMÈRES / HYBRIDES)
+- Le titre doit porter sur UN SEUL et UNIQUE événement précis.
+- INTERDICTION ABSOLUE de fusionner deux actualités distinctes dans le même titre avec des connecteurs ('alors que', 'pendant que', 'et', 'tandis que').
+- Développe les conséquences directes du sujet choisi, mais n'ajoute jamais une seconde actualité pour combler l'espace.
+
 PROXIMITÉ ET ANCRAGE NATIONAL (STRICT)
 - L'information doit concerner DIRECTEMENT la France, les citoyens français, les institutions ou l'économie nationale.
 - L'international est STRICTEMENT LIMITÉ aux événements d'impact mondial exceptionnel (changement de régime d'une superpuissance, déclaration de guerre totale, attentat de masse en Europe, séisme financier mondial).
@@ -591,6 +596,11 @@ Choose ONE story. Two actions:
 2. CHANGE: Another story is clearly superior and justifies a switch.
 
 If two stories are close in importance, KEEP.
+
+STRICT SINGLE STORY RULE (NO HYBRID / FRANKENSTEIN HEADLINES)
+- The headline must focus on ONE SINGLE event.
+- STRICTLY FORBIDDEN to combine two separate news events using connectors ('as', 'while', 'and', 'amid').
+- If you select a story, elaborate on its key consequence—NEVER append a second parallel story just to fill space.
 
 PROXIMITY & NATIONAL IMPACT (STRICT)
 - The story must directly impact the United States, American citizens, institutions, or the national economy.
