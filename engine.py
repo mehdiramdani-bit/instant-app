@@ -19,7 +19,7 @@ os.environ["TZ"] = "Europe/Paris"
 if hasattr(time, "tzset"):
     time.tzset()
 
-print("--> [START] Instant — Moteur Consolidé avec Persistance d'État", flush=True)
+print("--> [START] Instant — Moteur Consolidé avec Filtre Météo & Persistance", flush=True)
 
 STATE_FILE = "instant_state.json"
 
@@ -222,7 +222,7 @@ Si aucune information ne constitue une amélioration claire, conserve le titre a
 
 PRIORITÉS
 Privilégie notamment :
-- catastrophe ou alerte majeure,
+- catastrophe ou alerte absolue majeure,
 - guerre, attaque ou crise géopolitique majeure,
 - décision gouvernementale ou institutionnelle ayant des conséquences immédiates,
 - loi ou vote majeur,
@@ -230,6 +230,10 @@ Privilégie notamment :
 - crise économique ou financière majeure,
 - changement majeur affectant la vie quotidienne d’une large partie de la population,
 - événement international ayant des conséquences importantes pour la France.
+
+MÉTÉO ET VIGILANCES
+- Retiens uniquement les événements climatiques causant des dégâts majeurs avérés (victimes, destruction, paralysie régionale) ou les alertes exceptionnelles de niveau ROUGE absolu.
+- Écarte impérativement les vigilances météo orange ordinaires ou saisonnières (orages d'été habituels, canicules classiques, coups de vent de routine) qui relèvent de la météo de service sans crise de sécurité publique majeure.
 
 JUSTICE ET PROCÉDURES
 Retiens uniquement les affaires judiciaires visant des personnalités de tout premier plan de l'État ou les décisions majeures des juridictions suprêmes.
@@ -239,7 +243,7 @@ POLITIQUE
 Les sujets politiques sont pertinents lorsqu’ils correspondent à un changement concret de pouvoir, de gouvernement, de politique publique, d’institution ou de stabilité nationale.
 
 EXCLUSIONS
-Écarte : spéculations électorales, stratégies pour des scrutins futurs, candidatures et ambitions politiques, petites phrases, déclarations sans conséquence concrète, querelles partisanes, faits divers locaux ou individuels sans portée nationale, résultats sportifs ordinaires, lifestyle, culture, divertissement, sujets magazine, informations anciennes simplement remises en avant.
+Écarte : bulletins de météo de service et vigilances orange ordinaires, spéculations électorales, stratégies pour des scrutins futurs, candidatures et ambitions politiques, petites phrases, déclarations sans conséquence concrète, querelles partisanes, faits divers locaux ou individuels sans portée nationale, résultats sportifs ordinaires, lifestyle, culture, divertissement, sujets magazine, informations anciennes simplement remises en avant.
 
 RÈGLES FACTUELLES
 - Ne déduis aucun fait qui n’est pas suffisamment étayé par les titres.
@@ -327,13 +331,17 @@ If no story is a clear improvement over the current headline, keep the current h
 
 PRIORITIES
 Prioritize:
-- major disasters or critical alerts,
+- major disasters or catastrophic emergencies,
 - war, attacks, or major geopolitical crises,
 - major government or institutional decisions with immediate consequences,
 - major legislation or Supreme Court decisions,
 - major economic or financial developments,
 - major changes affecting everyday life for a large part of the population,
 - major international events with significant consequences for the US.
+
+WEATHER & ADVISORIES
+- Include weather events ONLY when they cause catastrophic damage (mass casualties, major destruction, state-wide emergency declaration) or extreme Red-level warnings (e.g. major hurricane landfall).
+- Strictly exclude routine seasonal weather advisories, typical summer storms, heat advisories, or ordinary weather forecasts.
 
 LEGAL & JUDICIAL PROCEEDINGS
 Include legal or criminal proceedings ONLY when they involve top-tier national figures or major Supreme Court decisions.
@@ -343,7 +351,7 @@ POLITICS
 Political stories qualify when they represent a concrete change in government, policy, institutional power, law, public order, or national stability.
 
 EXCLUSIONS
-Reject: future electoral speculation, campaign strategy, candidate positioning, early campaign moves, partisan horse-race coverage, political soundbites without concrete consequences, political feuds, isolated local crime/accidents, routine sports, lifestyle, entertainment, soft magazine stories, old stories merely receiving renewed coverage.
+Reject: routine weather advisories, future electoral speculation, campaign strategy, candidate positioning, early campaign moves, partisan horse-race coverage, political soundbites without concrete consequences, political feuds, isolated local crime/accidents, routine sports, lifestyle, entertainment, soft magazine stories, old stories merely receiving renewed coverage.
 
 FACTUAL RULES
 - Do not infer facts that are not sufficiently supported by the headlines.
