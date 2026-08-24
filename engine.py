@@ -9,6 +9,7 @@ import json
 import threading
 import http.server
 import socketserver
+import hashlib
 from datetime import datetime, timezone
 
 # ============================================================
@@ -19,12 +20,23 @@ os.environ["TZ"] = "Europe/Paris"
 if hasattr(time, "tzset"):
     time.tzset()
 
-print("--> [START] Instant — Moteur Consolidé avec Filtre Météo & Persistance", flush=True)
+print("--> [START] Instant V2 — Story Engine (Gemini 3.6 / 3.5 / Lite-latest)", flush=True)
 
 STATE_FILE = "instant_state.json"
+MAX_STORIES = 30
+MAX_HISTORY = 20
+MIN_STORY_HOLD_MINUTES = 20
+ARTICLES_PER_SOURCE = 7
+MAX_STORIES_FOR_GEMINI = 12
+
+MODELS_TO_TRY = [
+    os.environ.get("GEMINI_MODEL", "gemini-3.6-flash"),
+    "gemini-3.5-flash",
+    "gemini-flash-lite-latest",
+]
 
 # ============================================================
-# ÉTAT COURANT & PERSISTANCE
+# ÉTAT COURANT
 # ============================================================
 
 current_news = {
@@ -33,6 +45,7 @@ current_news = {
         "url": "https://www.lemonde.fr",
         "source": "Le Monde",
         "article_id": None,
+        "story_id": None,
         "updated_at": None,
     },
     "US": {
@@ -40,41 +53,98 @@ current_news = {
         "url": "https://www.nytimes.com",
         "source": "NY Times",
         "article_id": None,
+        "story_id": None,
         "updated_at": None,
     },
 }
 
+story_memory = {
+    "FR": {},
+    "US": {},
+}
+
+history = {
+    "FR": [],
+    "US": [],
+}
+
+# ============================================================
+# PERSISTANCE
+# ============================================================
+
 def load_state():
-    global current_news
-    if os.path.exists(STATE_FILE):
-        try:
-            with open(STATE_FILE, "r", encoding="utf-8") as f:
-                saved = json.load(f)
-                if isinstance(saved, dict):
-                    current_news.update(saved)
-            print("💾 [STATE] État restauré depuis le disque.", flush=True)
-        except Exception as e:
-            print(f"⚠️ [STATE] Erreur lecture : {e}", flush=True)
+    global current_news, story_memory, history
+    if not os.path.exists(STATE_FILE):
+        print("💾 [STATE] Aucun état précédent.", flush=True)
+        return
+
+    try:
+        with open(STATE_FILE, "r", encoding="utf-8") as f:
+            saved = json.load(f)
+
+        if not isinstance(saved, dict):
+            return
+
+        saved_current = saved.get("current_news")
+        saved_stories = saved.get("story_memory")
+        saved_history = saved.get("history")
+
+        if saved_current is None and "FR" in saved:
+            saved_current = saved
+
+        if isinstance(saved_current, dict):
+            for lang in ["FR", "US"]:
+                if isinstance(saved_current.get(lang), dict):
+                    current_news[lang].update(saved_current[lang])
+
+        if isinstance(saved_stories, dict):
+            for lang in ["FR", "US"]:
+                if isinstance(saved_stories.get(lang), dict):
+                    story_memory[lang].update(saved_stories[lang])
+
+        if isinstance(saved_history, dict):
+            for lang in ["FR", "US"]:
+                if isinstance(saved_history.get(lang), list):
+                    history[lang] = saved_history[lang][-MAX_HISTORY:]
+
+        print("💾 [STATE] État restauré depuis le disque.", flush=True)
+    except Exception as e:
+        print(f"⚠️ [STATE] Erreur lecture : {e}", flush=True)
 
 def save_state():
     try:
-        with open(STATE_FILE, "w", encoding="utf-8") as f:
-            json.dump(current_news, f, ensure_ascii=False, indent=2)
+        payload = {
+            "current_news": current_news,
+            "story_memory": story_memory,
+            "history": history,
+        }
+        temp_file = STATE_FILE + ".tmp"
+        with open(temp_file, "w", encoding="utf-8") as f:
+            json.dump(payload, f, ensure_ascii=False, indent=2)
+        os.replace(temp_file, STATE_FILE)
     except Exception as e:
         print(f"⚠️ [STATE] Erreur sauvegarde : {e}", flush=True)
+
+# ============================================================
+# UTILITAIRES TEMPS
+# ============================================================
 
 def now_iso():
     return datetime.now(timezone.utc).isoformat()
 
-def minutes_since(iso_str):
+def parse_iso(iso_str):
     if not iso_str:
-        return "inconnu"
+        return None
     try:
-        dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
-        mins = int((datetime.now(timezone.utc) - dt).total_seconds() / 60)
-        return f"{mins} minutes"
+        return datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
     except Exception:
-        return "inconnu"
+        return None
+
+def minutes_since(iso_str):
+    dt = parse_iso(iso_str)
+    if not dt:
+        return None
+    return max(0, int((datetime.now(timezone.utc) - dt).total_seconds() / 60))
 
 # ============================================================
 # SOURCES (5 FR / 5 US)
@@ -97,8 +167,32 @@ SOURCES_US = [
 ]
 
 # ============================================================
-# UTILITAIRES DE VALIDATION & RSS
+# UTILITAIRES TEXTE & CLUSTERING
 # ============================================================
+
+STOPWORDS_FR = {
+    "les", "des", "une", "un", "dans", "pour", "avec", "sur", "par",
+    "aux", "ses", "son", "sa", "leur", "leurs", "qui", "que", "quoi",
+    "est", "sont", "être", "avoir", "après", "avant", "plus", "moins",
+    "cette", "ce", "cet", "ces", "du", "de", "la", "le", "et", "ou",
+    "en", "au", "a", "à", "se", "d", "l", "ne", "pas", "mais", "comme",
+    "selon", "face", "vers", "entre", "contre", "depuis",
+    "tout", "tous", "toute", "toutes"
+}
+
+STOPWORDS_EN = {
+    "the", "a", "an", "of", "in", "on", "for", "to", "with", "from",
+    "by", "at", "as", "is", "are", "was", "were", "be", "been",
+    "this", "that", "these", "those", "and", "or", "but", "who",
+    "what", "how", "after", "before", "more", "less", "over",
+    "under", "into", "amid", "says", "said", "new"
+}
+
+GENERIC_WORDS = {
+    "breaking", "latest", "update", "updates", "news", "live",
+    "report", "reports", "according", "reveals", "announces",
+    "announced", "major", "new", "today", "now"
+}
 
 def clean_url(raw_url):
     if not raw_url:
@@ -124,6 +218,207 @@ def validate_headline(headline):
         return False
     return True
 
+def normalize_text(text):
+    text = text.lower()
+    text = re.sub(r"[^\w\s-]", " ", text, flags=re.UNICODE)
+    text = text.replace("-", " ")
+    return re.sub(r"\s+", " ", text).strip()
+
+def meaningful_tokens(text, lang):
+    normalized = normalize_text(text)
+    stopwords = STOPWORDS_FR if lang == "FR" else STOPWORDS_EN
+    tokens = []
+    for token in normalized.split():
+        if len(token) < 3 or token in stopwords or token in GENERIC_WORDS or token.isdigit():
+            continue
+        tokens.append(token)
+    return set(tokens)
+
+def token_similarity(tokens_a, tokens_b):
+    if not tokens_a or not tokens_b:
+        return 0.0
+    intersection = tokens_a.intersection(tokens_b)
+    if not intersection:
+        return 0.0
+    union = tokens_a.union(tokens_b)
+    return len(intersection) / len(union) if union else 0.0
+
+def strong_token_similarity(tokens_a, tokens_b):
+    if not tokens_a or not tokens_b:
+        return 0.0
+    intersection = tokens_a.intersection(tokens_b)
+    if len(intersection) >= 3:
+        return 1.0
+    if len(intersection) == 2:
+        return 0.65
+    if len(intersection) == 1:
+        return 0.25
+    return 0.0
+
+def titles_are_same_story(title_a, title_b, lang):
+    tokens_a = meaningful_tokens(title_a, lang)
+    tokens_b = meaningful_tokens(title_b, lang)
+    if not tokens_a or not tokens_b:
+        return False
+    jaccard = token_similarity(tokens_a, tokens_b)
+    strong = strong_token_similarity(tokens_a, tokens_b)
+    if jaccard >= 0.35 or strong >= 1.0:
+        return True
+    if strong >= 0.65 and min(len(tokens_a), len(tokens_b)) <= 5:
+        return True
+    return False
+
+def make_story_id(title, lang):
+    tokens = sorted(meaningful_tokens(title, lang))
+    signature = "|".join(tokens[:8])
+    if not signature:
+        signature = normalize_text(title)[:100]
+    digest = hashlib.sha1(signature.encode("utf-8")).hexdigest()[:12]
+    return f"{lang.lower()}_{digest}"
+
+def create_story(article, lang):
+    story_id = make_story_id(article["title"], lang)
+    return {
+        "story_id": story_id,
+        "first_seen_at": now_iso(),
+        "last_seen_at": now_iso(),
+        "last_selected_at": None,
+        "seen_count": 1,
+        "source_count": 1,
+        "sources": [article["source"]],
+        "headline": article["title"],
+        "articles": [article],
+    }
+
+def update_story(story, article):
+    story["last_seen_at"] = now_iso()
+    story["seen_count"] = story.get("seen_count", 0) + 1
+    if article["source"] not in story.get("sources", []):
+        story.setdefault("sources", []).append(article["source"])
+    story["source_count"] = len(story.get("sources", []))
+    articles = story.setdefault("articles", [])
+    existing_urls = {a.get("url") for a in articles if a.get("url")}
+    if article.get("url") not in existing_urls:
+        articles.append(article)
+    story["articles"] = articles[-10:]
+    story["headline"] = article["title"]
+
+def cluster_articles(items, lang):
+    stories = []
+    for item in items:
+        matched_story = None
+        best_similarity = 0.0
+        for story in stories:
+            representative_title = story["headline"]
+            tokens_a = meaningful_tokens(item["title"], lang)
+            tokens_b = meaningful_tokens(representative_title, lang)
+            similarity = max(
+                token_similarity(tokens_a, tokens_b),
+                strong_token_similarity(tokens_a, tokens_b) * 0.45
+            )
+            if titles_are_same_story(item["title"], representative_title, lang):
+                if similarity > best_similarity:
+                    best_similarity = similarity
+                    matched_story = story
+
+        if matched_story:
+            update_story(matched_story, item)
+        else:
+            stories.append(create_story(item, lang))
+
+    for story in stories:
+        story["story_id"] = make_story_id(story["headline"], lang)
+
+    stories.sort(
+        key=lambda s: (s.get("source_count", 0), s.get("seen_count", 0)),
+        reverse=True
+    )
+    return stories
+
+def merge_stories_into_memory(lang, detected_stories):
+    memory = story_memory[lang]
+    current_cycle = {}
+
+    for detected in detected_stories:
+        story_id = detected["story_id"]
+        existing = memory.get(story_id)
+
+        if existing is None:
+            for old_id, old_story in memory.items():
+                if titles_are_same_story(detected["headline"], old_story.get("headline", ""), lang):
+                    existing = old_story
+                    story_id = old_id
+                    break
+
+        if existing is None:
+            existing = {
+                "story_id": story_id,
+                "first_seen_at": now_iso(),
+                "last_seen_at": now_iso(),
+                "last_selected_at": None,
+                "seen_count": 0,
+                "source_count": 0,
+                "sources": [],
+                "headline": detected["headline"],
+                "articles": [],
+            }
+
+        existing["last_seen_at"] = now_iso()
+        existing["seen_count"] = max(existing.get("seen_count", 0), detected.get("seen_count", 1))
+        existing["source_count"] = max(existing.get("source_count", 0), detected.get("source_count", 1))
+        existing["sources"] = list(dict.fromkeys(existing.get("sources", []) + detected.get("sources", [])))
+        existing["headline"] = detected["headline"]
+        existing["articles"] = detected.get("articles", existing.get("articles", []))[-10:]
+        current_cycle[story_id] = existing
+
+    for old_id, old_story in memory.items():
+        if old_id not in current_cycle:
+            current_cycle[old_id] = old_story
+
+    sorted_memory = sorted(
+        current_cycle.items(),
+        key=lambda pair: pair[1].get("last_seen_at", ""),
+        reverse=True
+    )
+    story_memory[lang] = dict(sorted_memory[:MAX_STORIES])
+
+    return {
+        story_id: story
+        for story_id, story in story_memory[lang].items()
+        if story_id in {s["story_id"] for s in detected_stories}
+    }
+
+def story_age_minutes(story):
+    return minutes_since(story.get("first_seen_at"))
+
+def story_last_seen_minutes(story):
+    return minutes_since(story.get("last_seen_at"))
+
+def current_story_age_minutes(lang):
+    return minutes_since(current_news[lang].get("updated_at"))
+
+def story_is_current(lang, story_id):
+    return current_news[lang].get("story_id") == story_id
+
+def basic_story_score(story):
+    sources = min(story.get("source_count", 0), 5)
+    seen_count = min(story.get("seen_count", 0), 5)
+    return sources * 10 + seen_count * 3
+
+def rank_stories(stories, lang):
+    ranked = []
+    for story in stories:
+        score = basic_story_score(story)
+        if story_is_current(lang, story["story_id"]):
+            score += 8
+        ranked.append((score, story))
+    ranked.sort(key=lambda x: x[0], reverse=True)
+    return [story for score, story in ranked]
+
+# ============================================================
+# RSS FETCH
+# ============================================================
+
 def fetch_rss_items(sources):
     context = ssl._create_unverified_context()
     items = []
@@ -139,7 +434,7 @@ def fetch_rss_items(sources):
             response = urllib.request.urlopen(req, context=context, timeout=8)
             feed = feedparser.parse(response.read())
 
-            for entry in feed.entries[:7]:
+            for entry in feed.entries[:ARTICLES_PER_SOURCE]:
                 title = getattr(entry, "title", "").replace("\n", " ").strip()
                 link = getattr(entry, "link", "").strip()
 
@@ -167,301 +462,260 @@ def fetch_rss_items(sources):
 
     return items
 
-def format_news_for_prompt(items):
-    if not items:
-        return "NO NEWS AVAILABLE"
-    return "\n".join([f"[{item['id']}] SOURCE: {item['source']} | HEADLINE: {item['title']}" for item in items])
+def format_stories_for_prompt(stories, lang):
+    if not stories:
+        return "NO STORIES AVAILABLE"
+    blocks = []
+    for index, story in enumerate(stories[:MAX_STORIES_FOR_GEMINI], start=1):
+        source_names = ", ".join(story.get("sources", []))
+        age = story_age_minutes(story)
+        last_seen = story_last_seen_minutes(story)
+        is_current = story_is_current(lang, story["story_id"])
+        articles = story.get("articles", [])
+        article_lines = [f"- [{a['id']}] {a['source']}: {a['title']}" for a in articles[:5]]
+
+        block = f"""STORY {index}
+STORY_ID: {story['story_id']}
+CURRENTLY_DISPLAYED: {"YES" if is_current else "NO"}
+SOURCES: {source_names}
+SOURCE_COUNT: {story.get('source_count', 0)}
+SEEN_COUNT: {story.get('seen_count', 0)}
+FIRST_SEEN: {age if age is not None else "unknown"} minutes ago
+LAST_SEEN: {last_seen if last_seen is not None else "unknown"} minutes ago
+
+HEADLINES:
+{chr(10).join(article_lines)}""".strip()
+        blocks.append(block)
+
+    return "\n\n".join(blocks)
 
 # ============================================================
-# PROMPTS ÉDITORIAUX
+# PROMPTS
 # ============================================================
 
-def build_prompt_fr(news_list, current):
-    current_headline = current["headline"]
-    current_age = minutes_since(current["updated_at"])
+def build_prompt_fr(stories_text, current):
+    current_age = minutes_since(current.get("updated_at"))
+    current_story_id = current.get("story_id") or "none"
 
-    return f"""Voici les titres actuellement présents dans plusieurs grands médias français :
+    return f"""Tu es le rédacteur en chef d'INSTANT, une application de news minimaliste.
 
-{news_list}
+PROMESSE PRODUIT
+INSTANT montre UNE SEULE information : celle qui compte le plus pour le lecteur maintenant.
+Le principal risque est le bruit : changer de sujet trop vite dès qu'une nouvelle dépêche apparaît.
+Privilégie la PERTINENCE et la STABILITÉ plutôt que la nouveauté brute.
 
-TITRE ACTUELLEMENT AFFICHÉ :
-"{current_headline}"
+============================================================
+STORIES DÉTECTÉES
+============================================================
+{stories_text}
 
-ÂGE DU TITRE ACTUEL :
-Affiché depuis environ {current_age}.
+============================================================
+STORY ACTUELLE
+============================================================
+STORY_ID: {current_story_id}
+HEADLINE: "{current.get("headline", "")}"
+AFFICHÉE DEPUIS: {current_age if current_age is not None else "inconnu"} minutes
 
-RÔLE
-Tu es le rédacteur en chef d’une application de breaking news minimaliste.
-Sa promesse : ne montrer que l’information qui compte vraiment maintenant.
-
+============================================================
 MISSION
-À partir des titres fournis, identifie UNE SEULE information qui mérite d’être affichée maintenant.
+============================================================
+Choisis UNE story. Deux possibilités :
+1. KEEP : La story actuellement affichée reste le meilleur choix.
+2. CHANGE : Une autre story est nettement supérieure pour justifier un changement.
 
-Le bon choix est l’événement concret qui présente le meilleur mélange de :
-1. IMPACT : Conséquences réelles pour le pays, la population, l’économie, les institutions ou la sécurité.
-2. FRAÎCHEUR : Événement nouveau ou développement significatif très récent.
-3. PORTÉE : Nombre de personnes potentiellement concernées.
-4. CONSENSUS : Plusieurs rédactions indépendantes couvrent le même événement.
-5. GRAVITÉ : Importance intrinsèque de l’événement, même si la couverture médiatique est encore limitée.
-
-IMPORTANT
-Le consensus médiatique est un SIGNAL, pas une condition obligatoire.
-Une information majeure peut être sélectionnée même si elle n’apparaît encore que dans un seul flux.
-Ne confonds jamais volume médiatique et importance réelle.
-
-COMPARAISON AVEC LE TITRE ACTUEL
-Ne remplace pas le titre actuel simplement parce qu’une autre information est importante.
-Le nouveau sujet doit clairement être :
-- plus important,
-- ou plus récent et significatif,
-- ou plus susceptible d’avoir des conséquences immédiates.
-
-Ne remplace jamais le titre actuel pour une amélioration marginale.
-Si deux sujets sont proches en importance, CONSERVE LE TITRE ACTUEL.
-Si aucune information ne constitue une amélioration claire, conserve le titre actuel.
+Pour changer, il faut une vraie supériorité éditoriale (urgence nationale, gravité supérieure). Si deux stories sont proches, KEEP.
 
 PRIORITÉS
-Privilégie notamment :
-- catastrophe ou alerte absolue majeure,
-- guerre, attaque ou crise géopolitique majeure,
-- décision gouvernementale ou institutionnelle ayant des conséquences immédiates,
-- loi ou vote majeur,
-- décision majeure du Conseil constitutionnel ou du Conseil d’État,
-- crise économique ou financière majeure,
-- changement majeur affectant la vie quotidienne d’une large partie de la population,
-- événement international ayant des conséquences importantes pour la France.
+- Catastrophe majeure, guerre, attaque, crise géopolitique majeure.
+- Décision gouvernementale aux conséquences immédiates, loi majeure, décision suprême de justice.
+- Événement économique ou institutionnel majeur affectant directement la population.
 
-MÉTÉO ET VIGILANCES
-- Retiens uniquement les événements climatiques causant des dégâts majeurs avérés (victimes, destruction, paralysie régionale) ou les alertes exceptionnelles de niveau ROUGE absolu.
-- Écarte impérativement les vigilances météo orange ordinaires ou saisonnières (orages d'été habituels, canicules classiques, coups de vent de routine) qui relèvent de la météo de service sans crise de sécurité publique majeure.
+MÉTÉO
+Retiens les événements météo uniquement en cas de crise de sécurité publique avérée (victimes, destructions majeures, paralysie, alerte ROUGE absolue).
+Écarte impérativement les vigilances orange ordinaires et la météo de routine.
 
-JUSTICE ET PROCÉDURES
-Retiens uniquement les affaires judiciaires visant des personnalités de tout premier plan de l'État ou les décisions majeures des juridictions suprêmes.
-Écarte systématiquement : affaires pénales de particuliers, gardes à vue, détentions provisoires, procès de particuliers, faits divers judiciaires, figures secondaires.
-
-POLITIQUE
-Les sujets politiques sont pertinents lorsqu’ils correspondent à un changement concret de pouvoir, de gouvernement, de politique publique, d’institution ou de stabilité nationale.
+JUSTICE
+Retiens uniquement les affaires visant des personnalités de tout premier plan de l'État ou arrêts suprêmes. Écarte les faits divers et affaires de particuliers.
 
 EXCLUSIONS
-Écarte : bulletins de météo de service et vigilances orange ordinaires, spéculations électorales, stratégies pour des scrutins futurs, candidatures et ambitions politiques, petites phrases, déclarations sans conséquence concrète, querelles partisanes, faits divers locaux ou individuels sans portée nationale, résultats sportifs ordinaires, lifestyle, culture, divertissement, sujets magazine, informations anciennes simplement remises en avant.
+Écarte : météo ordinaire, politique spéculative, petites phrases, faits divers locaux, sport ordinaire, culture, lifestyle.
 
-RÈGLES FACTUELLES
-- Ne déduis aucun fait qui n’est pas suffisamment étayé par les titres.
-- Si plusieurs médias décrivent le même événement avec des détails différents, conserve uniquement les faits compatibles entre eux.
-- Ne transforme pas une déclaration en décision.
-- Ne transforme pas une intention en événement accompli.
-- Ne dramatise jamais artificiellement une information.
-- N'invente aucune information absente des sources.
-
-STRUCTURE DU TITRE
-Direct, factuel, percutant et immédiatement compréhensible.
-Quand l’espace le permet, priorise :
-1. CE QUI s’est passé
-2. QUI ou QUOI est impliqué
-3. La CONSÉQUENCE ou le CONTEXTE déterminant
-
-LONGUEUR DU TITRE
-Cible : idéalement environ 70 caractères.
-Fourchette visée : 65 à 75 caractères.
-Utilise l’espace disponible pour maximiser la densité d’information sans surcharger.
-Ne raccourcis pas un titre uniquement pour le rendre plus bref si un fait supplémentaire le rend plus informatif.
-N’ajoute jamais de mots de remplissage pour atteindre artificiellement la longueur cible.
-La clarté et la densité d’information priment sur le décompte exact.
-
-TYPOGRAPHIE
-Conserve les majuscules des noms propres, pays et sigles réels (RN, LFI, SNCF, UE, ONU, etc.).
-Conserve la majuscule aux noms propres même après un deux-points.
-Utilise l’apostrophe courbe (’).
-
-SÉLECTION DE LA SOURCE
-Tu dois retourner l'ID de l'article qui représente le mieux l'information sélectionnée.
-Ne retourne jamais directement une URL.
-Si tu conserves le titre actuel, retourne l'ID de sa source si elle est disponible dans la liste. Sinon retourne 0.
+HEADLINE
+Si CHANGE, rédige un titre :
+- Direct, factuel, dense, percutant.
+- Longueur cible : 65 à 75 caractères (idéalement ~70 car.).
+- Structure : CE QUI S'EST PASSÉ + ACTEURS + CONSÉQUENCE.
+- Utilise l'apostrophe courbe (’).
 
 SORTIE STRICTE
-Retourne exactement :
+Retourne exactement une seule ligne :
+ACTION|||STORY_ID|||HEADLINE
 
-TITRE|||ARTICLE_ID
+Exemples :
+KEEP|||{current_story_id}|||{current.get("headline", "")}
+CHANGE|||fr_abc123def456|||Titre réécrit de 65 à 75 caractères factuel et percutant"""
 
-Aucun autre texte."""
+def build_prompt_us(stories_text, current):
+    current_age = minutes_since(current.get("updated_at"))
+    current_story_id = current.get("story_id") or "none"
 
-def build_prompt_us(news_list, current):
-    current_headline = current["headline"]
-    current_age = minutes_since(current["updated_at"])
+    return f"""You are the Editor-in-Chief of INSTANT, a minimalist news app.
 
-    return f"""Here are the headlines currently appearing across major US news outlets:
+PRODUCT PROMISE
+INSTANT shows ONE story: the single most critical story that matters right now.
+The biggest risk is noise: changing stories too often for superficial updates.
+Prioritize RELEVANCE and STABILITY over freshness for its own sake.
 
-{news_list}
+============================================================
+DETECTED STORIES
+============================================================
+{stories_text}
 
-CURRENT HEADLINE DISPLAYED:
-"{current_headline}"
+============================================================
+CURRENT STORY
+============================================================
+STORY_ID: {current_story_id}
+HEADLINE: "{current.get("headline", "")}"
+DISPLAYED FOR: {current_age if current_age is not None else "unknown"} minutes
 
-CURRENT HEADLINE AGE:
-Displayed for approximately {current_age}.
-
-ROLE
-You are the Editor-in-Chief of a minimalist breaking news app.
-Its promise: show only the information that genuinely matters right now.
-
+============================================================
 MISSION
-From the headlines provided, identify ONE SINGLE story that deserves to be displayed now.
+============================================================
+Choose ONE story. Two actions:
+1. KEEP: Current story remains the best choice.
+2. CHANGE: Another story is clearly superior and justifies a switch.
 
-The right choice is the concrete event with the strongest combination of:
-1. IMPACT: Real consequences for people, the country, the economy, institutions, or national security.
-2. FRESHNESS: A new event or a significant recent development.
-3. REACH: The number of people potentially affected.
-4. CONSENSUS: Independent newsrooms covering the same event.
-5. SEVERITY: The intrinsic importance of the event, even when media coverage is still limited.
-
-IMPORTANT
-Media consensus is a SIGNAL, not a mandatory requirement.
-A major breaking story can be selected even if it currently appears in only one feed.
-Never confuse media volume with actual importance.
-
-COMPARISON WITH THE CURRENT HEADLINE
-Do not replace the current headline simply because another story is important.
-The new story must clearly be:
-- more important,
-- or more recent and significant,
-- or more likely to have immediate consequences.
-
-Do not replace the current headline for a marginal improvement.
-If two stories are close in importance, KEEP THE CURRENT HEADLINE.
-If no story is a clear improvement over the current headline, keep the current headline.
+If two stories are close in importance, KEEP.
 
 PRIORITIES
-Prioritize:
-- major disasters or catastrophic emergencies,
-- war, attacks, or major geopolitical crises,
-- major government or institutional decisions with immediate consequences,
-- major legislation or Supreme Court decisions,
-- major economic or financial developments,
-- major changes affecting everyday life for a large part of the population,
-- major international events with significant consequences for the US.
+- Major disasters, war, attacks, major geopolitical crises.
+- Major government/executive actions, legislation passed, Supreme Court decisions.
+- Major economic shocks or events affecting everyday life for the US population.
 
-WEATHER & ADVISORIES
-- Include weather events ONLY when they cause catastrophic damage (mass casualties, major destruction, state-wide emergency declaration) or extreme Red-level warnings (e.g. major hurricane landfall).
-- Strictly exclude routine seasonal weather advisories, typical summer storms, heat advisories, or ordinary weather forecasts.
+WEATHER
+Include weather ONLY for genuine catastrophic emergencies (mass casualties, major destruction, Red-level alerts).
+Strictly exclude routine seasonal advisories and summer storms.
 
-LEGAL & JUDICIAL PROCEEDINGS
-Include legal or criminal proceedings ONLY when they involve top-tier national figures or major Supreme Court decisions.
-Strictly exclude criminal cases involving private citizens, local arrests, or isolated local incidents.
+LEGAL & POLITICS
+Include legal proceedings ONLY for top-tier national leaders or Supreme Court decisions. Exclude ordinary criminal cases, local crimes, and political horse-race speculation.
 
-POLITICS
-Political stories qualify when they represent a concrete change in government, policy, institutional power, law, public order, or national stability.
-
-EXCLUSIONS
-Reject: routine weather advisories, future electoral speculation, campaign strategy, candidate positioning, early campaign moves, partisan horse-race coverage, political soundbites without concrete consequences, political feuds, isolated local crime/accidents, routine sports, lifestyle, entertainment, soft magazine stories, old stories merely receiving renewed coverage.
-
-FACTUAL RULES
-- Do not infer facts that are not sufficiently supported by the headlines.
-- When multiple outlets describe the same event differently, use only facts that are consistent across sources.
-- Never turn a statement into a decision.
-- Never turn an intention into an accomplished event.
-- Never artificially dramatize a story.
-- Never invent information absent from the sources.
-
-HEADLINE STRUCTURE
-Direct, factual, authoritative, and immediately understandable.
-When space allows, prioritize:
-1. WHAT happened
-2. WHO or WHAT is involved
-3. KEY consequence or context
-
-HEADLINE LENGTH
-Target approximately 70 characters.
-Aim for 65-75 characters.
-Use the available space to maximize useful information without overloading.
-Do not shorten a headline merely to make it more concise if additional factual information makes it more useful.
-Do not add filler words just to reach the target length.
-Clarity and information density take priority over exact character count.
-
-CAPITALIZATION & TYPOGRAPHY
-Preserve correct capitalization for proper nouns, countries, and genuine acronyms (US, USA, EU, UN, FBI, CIA, NATO, AI, GDP, etc.).
-Preserve capitalization on proper nouns even following a colon.
-Use curly apostrophes (’) only.
-
-SOURCE SELECTION
-Return the ID of the article that best represents the selected story.
-Never return a URL.
-If you keep the current headline, return its source ID if available in the list. Otherwise return 0.
+HEADLINE
+If CHANGE, write a US headline:
+- Direct, factual, authoritative, information-dense.
+- Target: 65 to 75 characters (approx. ~70 chars).
+- Structure: WHAT HAPPENED + KEY ACTOR + KEY CONSEQUENCE.
+- Use curly apostrophes (’ only).
 
 STRICT OUTPUT
-Return exactly:
+Return exactly one single line:
+ACTION|||STORY_ID|||HEADLINE
 
-TITLE|||ARTICLE_ID
-
-No other text."""
+Examples:
+KEEP|||{current_story_id}|||{current.get("headline", "")}
+CHANGE|||us_abc123def456|||Factual and authoritative headline between 65 and 75 chars"""
 
 # ============================================================
 # GEMINI ENGINE
 # ============================================================
 
-def evaluate_news(lang, items):
+def get_gemini_client():
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         print("❌ [GEMINI] GEMINI_API_KEY absente.", flush=True)
         return None
-
     try:
         from google import genai
-        client = genai.Client(api_key=api_key)
+        return genai.Client(api_key=api_key)
     except Exception as e:
         print(f"❌ [GEMINI] Erreur SDK : {e}", flush=True)
         return None
 
+def parse_gemini_decision(raw):
+    if not raw:
+        return None
+    raw = raw.strip().replace("```", "").strip()
+    parts = raw.split("|||", 2)
+    if len(parts) != 3:
+        print(f"⚠️ [GEMINI] Format invalide : {raw[:150]}", flush=True)
+        return None
+    action = parts[0].strip().upper()
+    story_id = parts[1].strip()
+    headline = sanitize_headline(parts[2])
+    if action not in {"KEEP", "CHANGE"} or not story_id:
+        return None
+    return {"action": action, "story_id": story_id, "headline": headline}
+
+def choose_best_article(story):
+    articles = story.get("articles", [])
+    return articles[-1] if articles else None
+
+def should_block_switch(lang, selected_story):
     current = current_news[lang]
-    news_list = format_news_for_prompt(items)
-    prompt = build_prompt_fr(news_list, current) if lang == "FR" else build_prompt_us(news_list, current)
+    current_story_id = current.get("story_id")
+    if not current_story_id or selected_story["story_id"] == current_story_id:
+        return False
+    current_age = current_story_age_minutes(lang)
+    if current_age is not None and current_age < MIN_STORY_HOLD_MINUTES:
+        if selected_story.get("source_count", 0) >= 4:
+            return False
+        return True
+    return False
 
-    models_to_try = [
-        "gemini-3.6-flash",
-        "gemini-3.5-flash",
-        "gemini-flash-lite-latest",
-    ]
+def evaluate_news(lang, stories):
+    client = get_gemini_client()
+    if client is None:
+        return None
 
-    for model_name in models_to_try:
+    current = current_news[lang]
+    ranked_stories = rank_stories(stories, lang)[:MAX_STORIES_FOR_GEMINI]
+    if not ranked_stories:
+        return None
+
+    stories_text = format_stories_for_prompt(ranked_stories, lang)
+    prompt = build_prompt_fr(stories_text, current) if lang == "FR" else build_prompt_us(stories_text, current)
+
+    for model_name in MODELS_TO_TRY:
         try:
+            print(f"🤖 [GEMINI] {lang} → {model_name}", flush=True)
             response = client.models.generate_content(model=model_name, contents=prompt)
             if not response or not response.text:
                 continue
 
-            raw = response.text.strip()
-            if "|||" not in raw:
+            decision = parse_gemini_decision(response.text)
+            if not decision:
                 continue
 
-            headline, article_id_raw = raw.split("|||", 1)
-            headline = sanitize_headline(headline)
+            action, story_id, headline = decision["action"], decision["story_id"], decision["headline"]
 
-            try:
-                article_id = int(re.search(r"\d+", article_id_raw).group())
-            except Exception:
+            if action == "KEEP":
+                if not current.get("story_id"):
+                    continue
+                print(f"↩️ [GEMINI] KEEP {lang} : {current['headline']}", flush=True)
+                return {"action": "KEEP", "story_id": current["story_id"], "headline": current["headline"]}
+
+            selected_story = next((s for s in ranked_stories if s["story_id"] == story_id), None)
+            if not selected_story:
+                selected_story = story_memory[lang].get(story_id)
+
+            if not selected_story or not validate_headline(headline):
                 continue
 
-            if not validate_headline(headline):
+            if should_block_switch(lang, selected_story):
+                print(f"🛑 [STABILITY] Changement bloqué (inertie) pour {lang} : {headline}", flush=True)
+                return {"action": "KEEP", "story_id": current.get("story_id"), "headline": current.get("headline")}
+
+            article = choose_best_article(selected_story)
+            if not article:
                 continue
 
-            if article_id == 0:
-                print(f"↩️ [GEMINI] Conservation du titre actuel ({lang})", flush=True)
-                return {
-                    "headline": current["headline"],
-                    "url": current["url"],
-                    "source": current["source"],
-                    "article_id": current["article_id"],
-                    "keep_current": True,
-                }
-
-            selected_item = next((item for item in items if item["id"] == article_id), None)
-            if not selected_item:
-                continue
-
-            print(f"✅ [GEMINI OK] {model_name} ({lang})", flush=True)
+            print(f"🔄 [GEMINI] CHANGE {lang} → {headline}", flush=True)
             return {
+                "action": "CHANGE",
+                "story_id": selected_story["story_id"],
                 "headline": headline,
-                "url": selected_item["url"],
-                "source": selected_item["source"],
-                "article_id": selected_item["id"],
-                "keep_current": False,
+                "url": article["url"],
+                "source": article["source"],
+                "article_id": article["id"],
             }
         except Exception as err:
             print(f"↳ Tentative {model_name} : {str(err)[:120]}...", flush=True)
@@ -471,7 +725,13 @@ def evaluate_news(lang, items):
     return None
 
 def apply_result(lang, result):
-    if not result or result.get("keep_current"):
+    if not result or result.get("action") != "CHANGE":
+        return
+
+    old = current_news[lang].copy()
+    new_story_id = result.get("story_id")
+    selected_story = story_memory[lang].get(new_story_id)
+    if not selected_story:
         return
 
     current_news[lang] = {
@@ -479,13 +739,27 @@ def apply_result(lang, result):
         "url": result["url"],
         "source": result["source"],
         "article_id": result["article_id"],
+        "story_id": new_story_id,
         "updated_at": now_iso(),
     }
-    print(f"📢 [{lang}] {current_news[lang]['headline']}", flush=True)
+
+    selected_story["last_selected_at"] = now_iso()
+    story_memory[lang][new_story_id] = selected_story
+
+    history[lang].append({
+        "changed_at": now_iso(),
+        "from_story_id": old.get("story_id"),
+        "from_headline": old.get("headline"),
+        "to_story_id": new_story_id,
+        "to_headline": result["headline"],
+    })
+    history[lang] = history[lang][-MAX_HISTORY:]
+
+    print(f"📢 [{lang}] {result['headline']}", flush=True)
     print(f"   ↳ {result['source']} → {result['url']}", flush=True)
 
 # ============================================================
-# HTML & SYNC
+# HTML & HTTP SERVER
 # ============================================================
 
 def update_html_files():
@@ -496,57 +770,13 @@ def update_html_files():
         try:
             with open(filename, "r", encoding="utf-8") as file:
                 content = file.read()
-
             pattern = r'(<script id="news-data" type="application/json">).*?(</script>)'
             replacement = rf'\1\n  {json_payload}\n  \2'
             new_content = re.sub(pattern, replacement, content, flags=re.DOTALL)
-
             with open(filename, "w", encoding="utf-8") as file:
                 file.write(new_content)
         except Exception as e:
             print(f"⚠️ [HTML] {filename} : {str(e)[:80]}", flush=True)
-
-# ============================================================
-# CYCLE PRINCIPAL
-# ============================================================
-
-refresh_lock = threading.Lock()
-
-def check_and_update():
-    if not refresh_lock.acquire(blocking=False):
-        print("⏳ [REFRESH] Évaluation déjà en cours.", flush=True)
-        return
-
-    try:
-        print(f"\n[{time.strftime('%H:%M:%S')}] --- ÉVALUATION GEMINI ---", flush=True)
-
-        # FR
-        try:
-            news_fr = fetch_rss_items(SOURCES_FR)
-            print(f"📰 [FR] {len(news_fr)} articles récupérés", flush=True)
-            result_fr = evaluate_news("FR", news_fr)
-            apply_result("FR", result_fr)
-        except Exception as e:
-            print(f"⚠️ [FR] Erreur : {e}", flush=True)
-
-        # US
-        try:
-            news_us = fetch_rss_items(SOURCES_US)
-            print(f"📰 [US] {len(news_us)} articles récupérés", flush=True)
-            result_us = evaluate_news("US", news_us)
-            apply_result("US", result_us)
-        except Exception as e:
-            print(f"⚠️ [US] Erreur : {e}", flush=True)
-
-        save_state()
-        update_html_files()
-        print("--- FIN ÉVALUATION ---\n", flush=True)
-    finally:
-        refresh_lock.release()
-
-# ============================================================
-# SERVEUR HTTP
-# ============================================================
 
 class InstantAppHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
@@ -567,8 +797,26 @@ class InstantAppHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(json.dumps(current_news, ensure_ascii=False).encode("utf-8"))
             return
 
+        if self.path.startswith("/api/history"):
+            self.send_response(200)
+            self.send_header("Content-type", "application/json; charset=utf-8")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+            self.end_headers()
+            self.wfile.write(json.dumps(history, ensure_ascii=False).encode("utf-8"))
+            return
+
+        if self.path.startswith("/api/stories"):
+            self.send_response(200)
+            self.send_header("Content-type", "application/json; charset=utf-8")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+            self.end_headers()
+            self.wfile.write(json.dumps(story_memory, ensure_ascii=False).encode("utf-8"))
+            return
+
         if self.path == "/manifest.json":
-            manifest_content = {
+            manifest = {
                 "short_name": "Instant",
                 "name": "INSTANT",
                 "start_url": "/?pwa=1",
@@ -579,7 +827,7 @@ class InstantAppHandler(http.server.SimpleHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-type", "application/json; charset=utf-8")
             self.end_headers()
-            self.wfile.write(json.dumps(manifest_content, ensure_ascii=False).encode("utf-8"))
+            self.wfile.write(json.dumps(manifest, ensure_ascii=False).encode("utf-8"))
             return
 
         if self.path in ["/", "/index.html", "/app.html"]:
@@ -601,6 +849,47 @@ def run_http_server():
     with socketserver.TCPServer(("", port), InstantAppHandler) as httpd:
         print(f"🌐 [SERVER] Port {port}", flush=True)
         httpd.serve_forever()
+
+# ============================================================
+# CYCLE PRINCIPAL
+# ============================================================
+
+refresh_lock = threading.Lock()
+
+def process_language(lang, sources):
+    try:
+        items = fetch_rss_items(sources)
+        print(f"📰 [{lang}] {len(items)} articles récupérés", flush=True)
+        if not items:
+            return
+
+        detected_stories = cluster_articles(items, lang)
+        print(f"🧩 [{lang}] {len(items)} articles → {len(detected_stories)} stories", flush=True)
+
+        active_stories = merge_stories_into_memory(lang, detected_stories)
+        active_story_list = list(active_stories.values())
+        if not active_story_list:
+            return
+
+        result = evaluate_news(lang, active_story_list)
+        apply_result(lang, result)
+    except Exception as e:
+        print(f"⚠️ [{lang}] Erreur : {e}", flush=True)
+
+def check_and_update():
+    if not refresh_lock.acquire(blocking=False):
+        print("⏳ [REFRESH] Évaluation déjà en cours.", flush=True)
+        return
+
+    try:
+        print(f"\n[{time.strftime('%H:%M:%S')}] --- ÉVALUATION INSTANT V2 ---", flush=True)
+        process_language("FR", SOURCES_FR)
+        process_language("US", SOURCES_US)
+        save_state()
+        update_html_files()
+        print("--- FIN ÉVALUATION ---\n", flush=True)
+    finally:
+        refresh_lock.release()
 
 # ============================================================
 # DÉMARRAGE
