@@ -20,7 +20,7 @@ os.environ["TZ"] = "Europe/Paris"
 if hasattr(time, "tzset"):
     time.tzset()
 
-print("--> [START] Instant V2 — Story Engine (Gemini 3.6 / 3.5 / Lite-latest)", flush=True)
+print("--> [START] Instant V2 — Story Engine (Règle de Proximité FR Stricte)", flush=True)
 
 STATE_FILE = "instant_state.json"
 MAX_STORIES = 30
@@ -490,19 +490,19 @@ HEADLINES:
     return "\n\n".join(blocks)
 
 # ============================================================
-# PROMPTS
+# PROMPTS ÉDITORIAUX
 # ============================================================
 
 def build_prompt_fr(stories_text, current):
     current_age = minutes_since(current.get("updated_at"))
     current_story_id = current.get("story_id") or "none"
 
-    return f"""Tu es le rédacteur en chef d'INSTANT, une application de news minimaliste.
+    return f"""Tu es le rédacteur en chef d'INSTANT France, une application de news minimaliste.
 
 PROMESSE PRODUIT
-INSTANT montre UNE SEULE information : celle qui compte le plus pour le lecteur maintenant.
+INSTANT montre UNE SEULE information : celle qui compte le plus pour le lecteur français maintenant.
 Le principal risque est le bruit : changer de sujet trop vite dès qu'une nouvelle dépêche apparaît.
-Privilégie la PERTINENCE et la STABILITÉ plutôt que la nouveauté brute.
+Privilégie la PERTINENCE, la PROXIMITÉ et la STABILITÉ plutôt que la nouveauté brute.
 
 ============================================================
 STORIES DÉTECTÉES
@@ -523,12 +523,17 @@ Choisis UNE story. Deux possibilités :
 1. KEEP : La story actuellement affichée reste le meilleur choix.
 2. CHANGE : Une autre story est nettement supérieure pour justifier un changement.
 
-Pour changer, il faut une vraie supériorité éditoriale (urgence nationale, gravité supérieure). Si deux stories sont proches, KEEP.
+Pour changer, il faut une vraie supériorité éditoriale. Si deux stories sont proches, KEEP.
+
+PROXIMITÉ ET ANCRAGE NATIONAL (STRICT)
+- L'information doit concerner DIRECTEMENT la France, les citoyens français, les institutions ou l'économie nationale.
+- L'international est STRICTEMENT LIMITÉ aux événements d'impact mondial exceptionnel (changement de régime d'une superpuissance, déclaration de guerre totale, attentat de masse en Europe, séisme financier mondial).
+- Écarte formellement les actualités bilatérales étrangères sans implication directe française (ex. accords UK-Ukraine, déclarations diplomatiques tierces, politique intérieure étrangère).
 
 PRIORITÉS
-- Catastrophe majeure, guerre, attaque, crise géopolitique majeure.
-- Décision gouvernementale aux conséquences immédiates, loi majeure, décision suprême de justice.
-- Événement économique ou institutionnel majeur affectant directement la population.
+- Décision gouvernementale ou présidentielle aux conséquences immédiates, loi majeure, vote crucial à l'Assemblée.
+- Crise économique, sociale ou financière majeure en France affectant largement la population.
+- Catastrophe ou urgence nationale majeure sur le territoire.
 
 MÉTÉO
 Retiens les événements météo uniquement en cas de crise de sécurité publique avérée (victimes, destructions majeures, paralysie, alerte ROUGE absolue).
@@ -538,7 +543,7 @@ JUSTICE
 Retiens uniquement les affaires visant des personnalités de tout premier plan de l'État ou arrêts suprêmes. Écarte les faits divers et affaires de particuliers.
 
 EXCLUSIONS
-Écarte : météo ordinaire, politique spéculative, petites phrases, faits divers locaux, sport ordinaire, culture, lifestyle.
+Écarte : diplomatie bilatérale étrangère sans lien direct avec la France, déclarations de soutien verbal, météo ordinaire, politique spéculative, petites phrases, faits divers locaux, sport ordinaire, culture, lifestyle.
 
 HEADLINE
 Si CHANGE, rédige un titre :
@@ -559,12 +564,12 @@ def build_prompt_us(stories_text, current):
     current_age = minutes_since(current.get("updated_at"))
     current_story_id = current.get("story_id") or "none"
 
-    return f"""You are the Editor-in-Chief of INSTANT, a minimalist news app.
+    return f"""You are the Editor-in-Chief of INSTANT US, a minimalist news app.
 
 PRODUCT PROMISE
-INSTANT shows ONE story: the single most critical story that matters right now.
+INSTANT shows ONE story: the single most critical story that matters to the US audience right now.
 The biggest risk is noise: changing stories too often for superficial updates.
-Prioritize RELEVANCE and STABILITY over freshness for its own sake.
+Prioritize RELEVANCE, NATIONAL PROXIMITY and STABILITY over freshness for its own sake.
 
 ============================================================
 DETECTED STORIES
@@ -587,10 +592,15 @@ Choose ONE story. Two actions:
 
 If two stories are close in importance, KEEP.
 
+PROXIMITY & NATIONAL IMPACT (STRICT)
+- The story must directly impact the United States, American citizens, institutions, or the national economy.
+- Foreign news is strictly limited to world-shifting events (major war outbreak, mass casualty attacks, global economic shocks directly involving the US).
+- Reject foreign bilateral moves or local foreign politics without direct US involvement.
+
 PRIORITIES
-- Major disasters, war, attacks, major geopolitical crises.
-- Major government/executive actions, legislation passed, Supreme Court decisions.
+- Major federal government/executive actions, legislation passed, Supreme Court decisions.
 - Major economic shocks or events affecting everyday life for the US population.
+- Major national emergencies or catastrophes.
 
 WEATHER
 Include weather ONLY for genuine catastrophic emergencies (mass casualties, major destruction, Red-level alerts).
