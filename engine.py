@@ -19,10 +19,12 @@ os.environ["TZ"] = "Europe/Paris"
 if hasattr(time, "tzset"):
     time.tzset()
 
-print("--> [START] Instant — Moteur Éditorial (Sources Médias Pures)", flush=True)
+print("--> [START] Instant — Moteur Consolidé avec Persistance d'État", flush=True)
+
+STATE_FILE = "instant_state.json"
 
 # ============================================================
-# ÉTAT COURANT
+# ÉTAT COURANT & PERSISTANCE
 # ============================================================
 
 current_news = {
@@ -42,8 +44,40 @@ current_news = {
     },
 }
 
+def load_state():
+    global current_news
+    if os.path.exists(STATE_FILE):
+        try:
+            with open(STATE_FILE, "r", encoding="utf-8") as f:
+                saved = json.load(f)
+                if isinstance(saved, dict):
+                    current_news.update(saved)
+            print("💾 [STATE] État restauré depuis le disque.", flush=True)
+        except Exception as e:
+            print(f"⚠️ [STATE] Erreur lecture : {e}", flush=True)
+
+def save_state():
+    try:
+        with open(STATE_FILE, "w", encoding="utf-8") as f:
+            json.dump(current_news, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"⚠️ [STATE] Erreur sauvegarde : {e}", flush=True)
+
+def now_iso():
+    return datetime.now(timezone.utc).isoformat()
+
+def minutes_since(iso_str):
+    if not iso_str:
+        return "inconnu"
+    try:
+        dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
+        mins = int((datetime.now(timezone.utc) - dt).total_seconds() / 60)
+        return f"{mins} minutes"
+    except Exception:
+        return "inconnu"
+
 # ============================================================
-# SOURCES (5 rédactions majeures FR / 5 rédactions majeures US)
+# SOURCES (5 FR / 5 US)
 # ============================================================
 
 SOURCES_FR = [
@@ -63,11 +97,8 @@ SOURCES_US = [
 ]
 
 # ============================================================
-# UTILITAIRES
+# UTILITAIRES DE VALIDATION & RSS
 # ============================================================
-
-def now_iso():
-    return datetime.now(timezone.utc).isoformat()
 
 def clean_url(raw_url):
     if not raw_url:
@@ -82,24 +113,16 @@ def sanitize_headline(text):
     text = re.sub(r"(?i)^(?:REWRITTEN_HEADLINE|TITRE_REECRIT|HEADLINE|TITRE|TITLE)\s*:\s*", "", text)
     text = text.replace("|||", "")
     text = text.replace("'", "’")
-    text = re.sub(r"\s+", " ", text)
-    return text.strip()
+    return re.sub(r"\s+", " ", text).strip()
 
 def validate_headline(headline):
     if not headline:
         return False
     length = len(headline.strip())
-    if length < 40:
-        print(f"⚠️ [VALIDATION] Titre trop court : {length} caractères", flush=True)
-        return False
-    if length > 90:
-        print(f"⚠️ [VALIDATION] Titre trop long : {length} caractères", flush=True)
+    if length < 40 or length > 90:
+        print(f"⚠️ [VALIDATION] Longueur invalide ({length} car.) : {headline}", flush=True)
         return False
     return True
-
-# ============================================================
-# RSS
-# ============================================================
 
 def fetch_rss_items(sources):
     context = ssl._create_unverified_context()
@@ -150,12 +173,12 @@ def format_news_for_prompt(items):
     return "\n".join([f"[{item['id']}] SOURCE: {item['source']} | HEADLINE: {item['title']}" for item in items])
 
 # ============================================================
-# PROMPTS
+# PROMPTS ÉDITORIAUX
 # ============================================================
 
 def build_prompt_fr(news_list, current):
     current_headline = current["headline"]
-    current_age = current["updated_at"] or "inconnue"
+    current_age = minutes_since(current["updated_at"])
 
     return f"""Voici les titres actuellement présents dans plusieurs grands médias français :
 
@@ -164,8 +187,8 @@ def build_prompt_fr(news_list, current):
 TITRE ACTUELLEMENT AFFICHÉ :
 "{current_headline}"
 
-DATE DE MISE À JOUR DU TITRE ACTUEL :
-{current_age}
+ÂGE DU TITRE ACTUEL :
+Affiché depuis environ {current_age}.
 
 RÔLE
 Tu es le rédacteur en chef d’une application de breaking news minimaliste.
@@ -260,7 +283,7 @@ Aucun autre texte."""
 
 def build_prompt_us(news_list, current):
     current_headline = current["headline"]
-    current_age = current["updated_at"] or "unknown"
+    current_age = minutes_since(current["updated_at"])
 
     return f"""Here are the headlines currently appearing across major US news outlets:
 
@@ -269,8 +292,8 @@ def build_prompt_us(news_list, current):
 CURRENT HEADLINE DISPLAYED:
 "{current_headline}"
 
-CURRENT HEADLINE LAST UPDATED:
-{current_age}
+CURRENT HEADLINE AGE:
+Displayed for approximately {current_age}.
 
 ROLE
 You are the Editor-in-Chief of a minimalist breaking news app.
@@ -363,7 +386,7 @@ TITLE|||ARTICLE_ID
 No other text."""
 
 # ============================================================
-# GEMINI
+# GEMINI ENGINE
 # ============================================================
 
 def evaluate_news(lang, items):
@@ -439,10 +462,6 @@ def evaluate_news(lang, items):
     print(f"❌ [GEMINI] Aucun modèle n'a pu répondre pour {lang}.", flush=True)
     return None
 
-# ============================================================
-# MISE À JOUR DE L'ÉTAT
-# ============================================================
-
 def apply_result(lang, result):
     if not result or result.get("keep_current"):
         return
@@ -458,7 +477,7 @@ def apply_result(lang, result):
     print(f"   ↳ {result['source']} → {result['url']}", flush=True)
 
 # ============================================================
-# HTML
+# HTML & SYNC
 # ============================================================
 
 def update_html_files():
@@ -511,6 +530,7 @@ def check_and_update():
         except Exception as e:
             print(f"⚠️ [US] Erreur : {e}", flush=True)
 
+        save_state()
         update_html_files()
         print("--- FIN ÉVALUATION ---\n", flush=True)
     finally:
@@ -577,6 +597,8 @@ def run_http_server():
 # ============================================================
 # DÉMARRAGE
 # ============================================================
+
+load_state()
 
 threading.Thread(target=run_http_server, daemon=True).start()
 threading.Thread(target=check_and_update, daemon=True).start()
