@@ -11,6 +11,7 @@ import http.server
 import socketserver
 import hashlib
 from datetime import datetime, timezone
+from feeds_config import FEEDS
 
 # ============================================================
 # CONFIGURATION
@@ -20,9 +21,10 @@ os.environ["TZ"] = "Europe/Paris"
 if hasattr(time, "tzset"):
     time.tzset()
 
-print("--> [START] Instant V2 — Story Engine (Règle de Proximité FR Stricte)", flush=True)
+print("--> [START] INSTANT Multi-Catégories — Production Engine", flush=True)
 
-STATE_FILE = "instant_state.json"
+STATE_FILE = "instant_categories_state.json"
+OUTPUT_JSON = "news_categories.json"
 MAX_STORIES = 30
 MAX_HISTORY = 20
 MIN_STORY_HOLD_MINUTES = 20
@@ -35,41 +37,29 @@ MODELS_TO_TRY = [
     "gemini-flash-lite-latest",
 ]
 
-# ============================================================
-# ÉTAT COURANT
-# ============================================================
+CATEGORIES = ["general", "monde", "eco", "tech", "sciences"]
+
+ssl_context = ssl.create_default_context()
+ssl_context.check_hostname = False
+ssl_context.verify_mode = ssl.CERT_NONE
 
 current_news = {
-    "FR": {
-        "headline": "Analyse en cours…",
-        "url": "https://www.lemonde.fr",
-        "source": "Le Monde",
-        "article_id": None,
-        "story_id": None,
-        "updated_at": None,
-    },
-    "US": {
-        "headline": "Analysis in progress…",
-        "url": "https://www.nytimes.com",
-        "source": "NY Times",
-        "article_id": None,
-        "story_id": None,
-        "updated_at": None,
-    },
+    "FR": {cat: {"headline": "Analyse en cours…", "url": "", "source": "", "article_id": None, "story_id": None, "updated_at": None} for cat in CATEGORIES},
+    "US": {cat: {"headline": "Analysis in progress…", "url": "", "source": "", "article_id": None, "story_id": None, "updated_at": None} for cat in CATEGORIES}
 }
 
 story_memory = {
-    "FR": {},
-    "US": {},
+    "FR": {cat: {} for cat in CATEGORIES},
+    "US": {cat: {} for cat in CATEGORIES}
 }
 
 history = {
-    "FR": [],
-    "US": [],
+    "FR": {cat: [] for cat in CATEGORIES},
+    "US": {cat: [] for cat in CATEGORIES}
 }
 
 # ============================================================
-# PERSISTANCE
+# PERSISTANCE & EXPORT
 # ============================================================
 
 def load_state():
@@ -85,29 +75,23 @@ def load_state():
         if not isinstance(saved, dict):
             return
 
-        saved_current = saved.get("current_news")
-        saved_stories = saved.get("story_memory")
-        saved_history = saved.get("history")
+        for lang in ["FR", "US"]:
+            if lang in saved.get("current_news", {}):
+                for cat in CATEGORIES:
+                    if cat in saved["current_news"][lang]:
+                        current_news[lang][cat].update(saved["current_news"][lang][cat])
 
-        if saved_current is None and "FR" in saved:
-            saved_current = saved
+            if lang in saved.get("story_memory", {}):
+                for cat in CATEGORIES:
+                    if cat in saved["story_memory"][lang]:
+                        story_memory[lang][cat].update(saved["story_memory"][lang][cat])
 
-        if isinstance(saved_current, dict):
-            for lang in ["FR", "US"]:
-                if isinstance(saved_current.get(lang), dict):
-                    current_news[lang].update(saved_current[lang])
+            if lang in saved.get("history", {}):
+                for cat in CATEGORIES:
+                    if cat in saved["history"][lang]:
+                        history[lang][cat] = saved["history"][lang][cat][-MAX_HISTORY:]
 
-        if isinstance(saved_stories, dict):
-            for lang in ["FR", "US"]:
-                if isinstance(saved_stories.get(lang), dict):
-                    story_memory[lang].update(saved_stories[lang])
-
-        if isinstance(saved_history, dict):
-            for lang in ["FR", "US"]:
-                if isinstance(saved_history.get(lang), list):
-                    history[lang] = saved_history[lang][-MAX_HISTORY:]
-
-        print("💾 [STATE] État restauré depuis le disque.", flush=True)
+        print("💾 [STATE] État restauré.", flush=True)
     except Exception as e:
         print(f"⚠️ [STATE] Erreur lecture : {e}", flush=True)
 
@@ -122,11 +106,27 @@ def save_state():
         with open(temp_file, "w", encoding="utf-8") as f:
             json.dump(payload, f, ensure_ascii=False, indent=2)
         os.replace(temp_file, STATE_FILE)
+        export_news_for_ui()
     except Exception as e:
         print(f"⚠️ [STATE] Erreur sauvegarde : {e}", flush=True)
 
+def export_news_for_ui():
+    ui_payload = {"FR": [], "US": []}
+    for lang in ["FR", "US"]:
+        for cat in CATEGORIES:
+            item = current_news[lang][cat]
+            ui_payload[lang].append({
+                "category": cat,
+                "headline": item["headline"],
+                "url": item["url"],
+                "source": item["source"],
+                "updated_at": item["updated_at"]
+            })
+    with open(OUTPUT_JSON, "w", encoding="utf-8") as f:
+        json.dump(ui_payload, f, ensure_ascii=False, indent=2)
+
 # ============================================================
-# UTILITAIRES TEMPS
+# UTILITAIRES TEXTE & CLUSTERING
 # ============================================================
 
 def now_iso():
@@ -145,30 +145,6 @@ def minutes_since(iso_str):
     if not dt:
         return None
     return max(0, int((datetime.now(timezone.utc) - dt).total_seconds() / 60))
-
-# ============================================================
-# SOURCES (5 FR / 5 US)
-# ============================================================
-
-SOURCES_FR = [
-    {"name": "Le Monde", "url": "https://www.lemonde.fr/rss/une.xml", "domain": "https://www.lemonde.fr"},
-    {"name": "Le Figaro", "url": "https://www.lefigaro.fr/rss/figaro_une.xml", "domain": "https://www.lefigaro.fr"},
-    {"name": "France Info", "url": "https://www.francetvinfo.fr/titres.rss", "domain": "https://www.francetvinfo.fr"},
-    {"name": "20 Minutes", "url": "https://www.20minutes.fr/feeds/rss-une.xml", "domain": "https://www.20minutes.fr"},
-    {"name": "BFM TV", "url": "https://www.bfmtv.com/rss/info/flux-rss/flux-toutes-les-actualites/", "domain": "https://www.bfmtv.com"},
-]
-
-SOURCES_US = [
-    {"name": "NY Times", "url": "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml", "domain": "https://www.nytimes.com"},
-    {"name": "Washington Post", "url": "https://feeds.washingtonpost.com/rss/national", "domain": "https://www.washingtonpost.com"},
-    {"name": "CNN", "url": "http://rss.cnn.com/rss/cnn_topstories.rss", "domain": "https://edition.cnn.com"},
-    {"name": "NPR News", "url": "https://feeds.npr.org/1001/rss.xml", "domain": "https://www.npr.org"},
-    {"name": "CBS News", "url": "https://www.cbsnews.com/latest/rss/main", "domain": "https://www.cbsnews.com"},
-]
-
-# ============================================================
-# UTILITAIRES TEXTE & CLUSTERING
-# ============================================================
 
 STOPWORDS_FR = {
     "les", "des", "une", "un", "dans", "pour", "avec", "sur", "par",
@@ -204,17 +180,33 @@ def sanitize_headline(text):
     if not text:
         return ""
     text = text.strip().strip('"').strip("'")
-    text = re.sub(r"(?i)^(?:REWRITTEN_HEADLINE|TITRE_REECRIT|HEADLINE|TITRE|TITLE)\s*:\s*", "", text)
     text = text.replace("|||", "")
     text = text.replace("'", "’")
-    return re.sub(r"\s+", " ", text).strip()
+    # 1. Nombres insecables (ex: 1 000 -> 1 000)
+    words = text.split(" ")
+    fixed = []
+    for w in words:
+        if fixed and fixed[-1].isdigit() and w.isdigit() and len(w) == 3:
+            fixed[-1] = fixed[-1] + " " + w
+        else:
+            fixed.append(w)
+    text = " ".join(fixed)
+    # 2. Deux-points insecables et minuscule forcee
+    if ":" in text:
+        text = re.sub(r"\s*:\s*", " : ", text)
+        def _lower_after(m):
+            w = m.group(1)
+            if w.lower() in ["les", "la", "le", "un", "une", "des", "ce", "cette", "ces", "son", "sa", "ses", "leur", "leurs", "vers", "pour", "selon", "comment", "pourquoi"]:
+                return " : " + w.lower()
+            return m.group(0)
+        text = re.sub(r" :\s+([A-Za-zÀ-ÖØ-öø-ÿ]+)", _lower_after, text)
+    return text.strip()
 
 def validate_headline(headline):
     if not headline:
         return False
     length = len(headline.strip())
-    if length < 40 or length > 90:
-        print(f"⚠️ [VALIDATION] Longueur invalide ({length} car.) : {headline}", flush=True)
+    if length < 25 or length > 130:
         return False
     return True
 
@@ -227,11 +219,7 @@ def normalize_text(text):
 def meaningful_tokens(text, lang):
     normalized = normalize_text(text)
     stopwords = STOPWORDS_FR if lang == "FR" else STOPWORDS_EN
-    tokens = []
-    for token in normalized.split():
-        if len(token) < 3 or token in stopwords or token in GENERIC_WORDS or token.isdigit():
-            continue
-        tokens.append(token)
+    tokens = [t for t in normalized.split() if len(t) >= 3 and t not in stopwords and t not in GENERIC_WORDS and not t.isdigit()]
     return set(tokens)
 
 def token_similarity(tokens_a, tokens_b):
@@ -268,16 +256,16 @@ def titles_are_same_story(title_a, title_b, lang):
         return True
     return False
 
-def make_story_id(title, lang):
+def make_story_id(title, lang, cat):
     tokens = sorted(meaningful_tokens(title, lang))
     signature = "|".join(tokens[:8])
     if not signature:
         signature = normalize_text(title)[:100]
-    digest = hashlib.sha1(signature.encode("utf-8")).hexdigest()[:12]
-    return f"{lang.lower()}_{digest}"
+    digest = hashlib.sha1(signature.encode("utf-8")).hexdigest()[:10]
+    return f"{lang.lower()}_{cat}_{digest}"
 
-def create_story(article, lang):
-    story_id = make_story_id(article["title"], lang)
+def create_story(article, lang, cat):
+    story_id = make_story_id(article["title"], lang, cat)
     return {
         "story_id": story_id,
         "first_seen_at": now_iso(),
@@ -303,7 +291,7 @@ def update_story(story, article):
     story["articles"] = articles[-10:]
     story["headline"] = article["title"]
 
-def cluster_articles(items, lang):
+def cluster_articles(items, lang, cat):
     stories = []
     for item in items:
         matched_story = None
@@ -324,10 +312,10 @@ def cluster_articles(items, lang):
         if matched_story:
             update_story(matched_story, item)
         else:
-            stories.append(create_story(item, lang))
+            stories.append(create_story(item, lang, cat))
 
     for story in stories:
-        story["story_id"] = make_story_id(story["headline"], lang)
+        story["story_id"] = make_story_id(story["headline"], lang, cat)
 
     stories.sort(
         key=lambda s: (s.get("source_count", 0), s.get("seen_count", 0)),
@@ -335,8 +323,8 @@ def cluster_articles(items, lang):
     )
     return stories
 
-def merge_stories_into_memory(lang, detected_stories):
-    memory = story_memory[lang]
+def merge_stories_into_memory(lang, cat, detected_stories):
+    memory = story_memory[lang][cat]
     current_cycle = {}
 
     for detected in detected_stories:
@@ -380,11 +368,11 @@ def merge_stories_into_memory(lang, detected_stories):
         key=lambda pair: pair[1].get("last_seen_at", ""),
         reverse=True
     )
-    story_memory[lang] = dict(sorted_memory[:MAX_STORIES])
+    story_memory[lang][cat] = dict(sorted_memory[:MAX_STORIES])
 
     return {
         story_id: story
-        for story_id, story in story_memory[lang].items()
+        for story_id, story in story_memory[lang][cat].items()
         if story_id in {s["story_id"] for s in detected_stories}
     }
 
@@ -394,22 +382,22 @@ def story_age_minutes(story):
 def story_last_seen_minutes(story):
     return minutes_since(story.get("last_seen_at"))
 
-def current_story_age_minutes(lang):
-    return minutes_since(current_news[lang].get("updated_at"))
+def current_story_age_minutes(lang, cat):
+    return minutes_since(current_news[lang][cat].get("updated_at"))
 
-def story_is_current(lang, story_id):
-    return current_news[lang].get("story_id") == story_id
+def story_is_current(lang, cat, story_id):
+    return current_news[lang][cat].get("story_id") == story_id
 
 def basic_story_score(story):
     sources = min(story.get("source_count", 0), 5)
     seen_count = min(story.get("seen_count", 0), 5)
     return sources * 10 + seen_count * 3
 
-def rank_stories(stories, lang):
+def rank_stories(stories, lang, cat):
     ranked = []
     for story in stories:
         score = basic_story_score(story)
-        if story_is_current(lang, story["story_id"]):
+        if story_is_current(lang, cat, story["story_id"]):
             score += 8
         ranked.append((score, story))
     ranked.sort(key=lambda x: x[0], reverse=True)
@@ -420,7 +408,6 @@ def rank_stories(stories, lang):
 # ============================================================
 
 def fetch_rss_items(sources):
-    context = ssl._create_unverified_context()
     items = []
     seen_titles = set()
     item_id = 1
@@ -429,20 +416,20 @@ def fetch_rss_items(sources):
         try:
             req = urllib.request.Request(
                 source["url"],
-                headers={"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"}
+                headers={
+                    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+                }
             )
-            response = urllib.request.urlopen(req, context=context, timeout=8)
+            response = urllib.request.urlopen(req, context=ssl_context, timeout=8)
             feed = feedparser.parse(response.read())
 
             for entry in feed.entries[:ARTICLES_PER_SOURCE]:
                 title = getattr(entry, "title", "").replace("\n", " ").strip()
                 link = getattr(entry, "link", "").strip()
 
-                if not title:
+                if not title or not link:
                     continue
-
-                if link.startswith("/"):
-                    link = source["domain"] + link
 
                 norm_key = re.sub(r"[^\w\s]", "", title.lower()).strip()
                 if norm_key in seen_titles:
@@ -451,18 +438,17 @@ def fetch_rss_items(sources):
 
                 items.append({
                     "id": item_id,
-                    "source": source["name"],
+                    "source": source["source"],
                     "title": title,
                     "url": clean_url(link),
                 })
                 item_id += 1
-        except Exception as e:
-            print(f"⚠️ [RSS] {source['name']} : {str(e)[:80]}", flush=True)
+        except Exception:
             continue
 
     return items
 
-def format_stories_for_prompt(stories, lang):
+def format_stories_for_prompt(stories, lang, cat):
     if not stories:
         return "NO STORIES AVAILABLE"
     blocks = []
@@ -470,7 +456,7 @@ def format_stories_for_prompt(stories, lang):
         source_names = ", ".join(story.get("sources", []))
         age = story_age_minutes(story)
         last_seen = story_last_seen_minutes(story)
-        is_current = story_is_current(lang, story["story_id"])
+        is_current = story_is_current(lang, cat, story["story_id"])
         articles = story.get("articles", [])
         article_lines = [f"- [{a['id']}] {a['source']}: {a['title']}" for a in articles[:5]]
 
@@ -490,19 +476,73 @@ HEADLINES:
     return "\n\n".join(blocks)
 
 # ============================================================
-# PROMPTS ÉDITORIAUX
+# PROMPTS ÉDITORIAUX STRICTS
 # ============================================================
 
-def build_prompt_fr(stories_text, current):
+CATEGORY_CRITERIA_FR = {
+    "general": """PRIORITÉ NATIONALE STRICTE & ANCRAGE FRANCE
+- Priorité absolue aux faits majeurs nationaux, vie publique, société, institutions et événements ayant un impact direct sur le territoire français.
+- Seuil d'exception internationale STRICTISSIME : toléré UNIQUEMENT en cas d'onde de choc planétaire historique éclipsant totalement l'actualité nationale (déclenchement d'un conflit mondial, attentat historique mondial, crise sanitaire globale majeure).
+- VERROU ANTI-DOUBLON (STRICT) : INTERDICTION FORMELLE d'importer une actualité étrangère ou géopolitique sous prétexte d'un angle secondaire (ex. réactions diplomatiques de routine, quelques ressortissants sur place). L'international pur relève EXCLUSIVEMENT de la rubrique Monde.
+- Écarte : faits divers locaux sans portée nationale, météo ordinaire, querelles partisanes mineures.""",
+
+    "monde": """GÉOPOLITIQUE, RELATIONS INTERNATIONALES ET CONFLITS MONDIAUX
+- Événements géopolitiques majeurs, traités, conflits armés, crises démocratiques ou humanitaires mondiales hors de France.
+- Priorité à l'actualité internationale à l'impact planétaire le plus déterminant aujourd'hui.
+- Écarte : débats de politique intérieure française et faits divers régionaux étrangers sans portée globale.""",
+
+    "eco": """MACROÉCONOMIE, GRANDES ENTREPRISES & IMPACT FINANCIER RÉEL
+- Décisions budgétaires d'État, inflation, pouvoir d'achat, taux directeurs, réformes structurelles, fusions/acquisitions majeures et emploi.
+- ÉCARTE IMPÉRATIVEMENT : joutes électorales, élections partielles ou locales, promesses de campagne et déclarations partisanes sans décision économique exécutoire immédiate.
+- Écarte également : conseils en gestion de patrimoine individuel, micro-cours de bourse quotidiens et publireportages.""",
+
+    "tech": """RUPTURES TECHNOLOGIQUES, IA ET ENJEUX INDUSTRIELS
+- Percées en IA, régulation numérique, cybersécurité critique, puces/semi-conducteurs, stratégies des géants de la tech.
+- Écarte strictement : promotions e-commerce, tests de gadgets, rumeurs matérielles et tutoriels produits.""",
+
+    "sciences": """CLIMAT, BIODIVERSITÉ, SANTÉ PUBLIQUE ET RECHERCHE
+- Rapports climatiques majeurs, transitions énergétiques de fond, découvertes médicales ou spatiales évaluées par les pairs.
+- Écarte : astuces lifestyle/nutrition, marronniers saisonniers et météo de routine."""
+}
+
+CATEGORY_CRITERIA_US = {
+    "general": """STRICT NATIONAL PROXIMITY & US INSTITUTIONS
+- Absolute priority to major national news, domestic policy, federal institutions, and society events directly impacting the United States.
+- STRICT INTERNATIONAL EXCEPTION: Allowed ONLY for seismic global events that completely overshadow domestic news (outbreak of major world war, historic global terror event, major global health crisis).
+- ANTI-DUPLICATE LOCK: STRICTLY FORBIDDEN to import foreign or international events using minor US angles (e.g. routine diplomatic statements, few citizens caught abroad). Pure international belongs EXCLUSIVELY to World.
+- Exclude: routine local crime, isolated weather advisories, minor political infighting.""",
+
+    "monde": """GLOBAL GEOPOLITICS, INTERNATIONAL CONFLICTS & DIPLOMACY
+- Major cross-border conflicts, international treaties, global summits, humanitarian and democratic crises outside domestic US borders.
+- Prioritize the single international development with the highest global consequence today.
+- Exclude: purely domestic US politics and minor local foreign events.""",
+
+    "eco": """MACROECONOMICS, CORPORATE DEVELOPMENTS & FISCAL IMPACT
+- Federal Reserve policy, inflation, labor market benchmarks, national fiscal legislation, and major corporate shifts.
+- STRICTLY EXCLUDE: political campaigns, local/special elections, stump speeches, and partisan claims lacking direct and enacted macroeconomic impact.
+- Exclude: personal investment advice, intraday single-stock noise, and sponsored content.""",
+
+    "tech": """TECHNOLOGICAL BREAKTHROUGHS, AI & INFRASTRUCTURE
+- Frontier AI, federal antitrust & digital regulation, semiconductor supply chains, critical enterprise cybersecurity.
+- Strictly exclude: consumer deals, product reviews, unverified hardware leaks, and minor app updates.""",
+
+    "sciences": """CLIMATE SCIENCE, SPACE EXPLORATION & PEER-REVIEWED DISCOVERIES
+- Landmark climate benchmarks, clean energy infrastructure, peer-reviewed medical breakthroughs, major space missions.
+- Exclude: wellness/diet trends, routine weather patterns, and unverified claims."""
+}
+
+def build_prompt_fr(cat, stories_text, current):
     current_age = minutes_since(current.get("updated_at"))
     current_story_id = current.get("story_id") or "none"
+    criteria = CATEGORY_CRITERIA_FR[cat]
 
-    return f"""Tu es le rédacteur en chef d'INSTANT France, une application de news minimaliste.
+    return f"""Tu es le rédacteur en chef d'INSTANT France pour la rubrique [{cat.upper()}].
 
 PROMESSE PRODUIT
-INSTANT montre UNE SEULE information : celle qui compte le plus pour le lecteur français maintenant.
+INSTANT montre UNE SEULE information par rubrique : celle qui compte le plus pour le lecteur en ce moment.
+Boussole éditoriale : si le lecteur ne devait retenir qu’une seule information de cette rubrique en ce moment, quelle est celle qu’il regretterait le plus d’avoir manquée ?
 Le principal risque est le bruit : changer de sujet trop vite dès qu'une nouvelle dépêche apparaît.
-Privilégie la PERTINENCE, la PROXIMITÉ et la STABILITÉ plutôt que la nouveauté brute.
+Privilégie la PERTINENCE, la VÉRIFIABILITÉ et la STABILITÉ plutôt que la nouveauté brute.
 
 ============================================================
 STORIES DÉTECTÉES
@@ -519,42 +559,24 @@ AFFICHÉE DEPUIS: {current_age if current_age is not None else "inconnu"} minute
 ============================================================
 MISSION
 ============================================================
-Choisis UNE story. Deux possibilités :
-1. KEEP : La story actuellement affichée reste le meilleur choix.
-2. CHANGE : Une autre story est nettement supérieure pour justifier un changement.
-
-Pour changer, il faut une vraie supériorité éditoriale. Si deux stories sont proches, KEEP.
+Choisis UNE story.
+- Si STORY_ID actuel est "none" ou vide : Tu DOIS obligatoirement faire une action CHANGE pour sélectionner et rédiger la première actualité de référence.
+- Si une story est déjà affichée :
+  1. KEEP : La story actuelle reste le meilleur choix.
+  2. CHANGE : Une autre story est nettement supérieure pour justifier un changement.
 
 SUJET UNIQUE ET STRICT (INTERDICTION DES TITRES CHIMÈRES / HYBRIDES)
 - Le titre doit porter sur UN SEUL et UNIQUE événement précis.
 - INTERDICTION ABSOLUE de fusionner deux actualités distinctes dans le même titre avec des connecteurs ('alors que', 'pendant que', 'et', 'tandis que').
 - Développe les conséquences directes du sujet choisi, mais n'ajoute jamais une seconde actualité pour combler l'espace.
 
-PROXIMITÉ ET ANCRAGE NATIONAL (STRICT)
-- L'information doit concerner DIRECTEMENT la France, les citoyens français, les institutions ou l'économie nationale.
-- L'international est STRICTEMENT LIMITÉ aux événements d'impact mondial exceptionnel (changement de régime d'une superpuissance, déclaration de guerre totale, attentat de masse en Europe, séisme financier mondial).
-- Écarte formellement les actualités bilatérales étrangères sans implication directe française (ex. accords UK-Ukraine, déclarations diplomatiques tierces, politique intérieure étrangère).
-
-PRIORITÉS
-- Décision gouvernementale ou présidentielle aux conséquences immédiates, loi majeure, vote crucial à l'Assemblée.
-- Crise économique, sociale ou financière majeure en France affectant largement la population.
-- Catastrophe ou urgence nationale majeure sur le territoire.
-
-MÉTÉO
-Retiens les événements météo uniquement en cas de crise de sécurité publique avérée (victimes, destructions majeures, paralysie, alerte ROUGE absolue).
-Écarte impérativement les vigilances orange ordinaires et la météo de routine.
-
-JUSTICE
-Retiens uniquement les affaires visant des personnalités de tout premier plan de l'État ou arrêts suprêmes. Écarte les faits divers et affaires de particuliers.
-
-EXCLUSIONS
-Écarte : diplomatie bilatérale étrangère sans lien direct avec la France, déclarations de soutien verbal, météo ordinaire, politique spéculative, petites phrases, faits divers locaux, sport ordinaire, culture, lifestyle.
+{criteria}
 
 HEADLINE
 Si CHANGE, rédige un titre :
-- Direct, factuel, dense, percutant.
-- Longueur cible : 65 à 75 caractères (idéalement ~70 car.).
-- Structure : CE QUI S'EST PASSÉ + ACTEURS + CONSÉQUENCE.
+- Style grand quotidien : fluide, percutant et parfaitement intelligible sans contexte.
+- Structure libre : Phrase directe OU formule "Sujet/Cadre : action précise" (minuscule après les deux-points, sauf nom propre).
+- Longueur cible : min 60 à max 75 caractères (idéalement ~68 à 72 car.).
 - Utilise l'apostrophe courbe (’).
 
 SORTIE STRICTE
@@ -563,16 +585,18 @@ ACTION|||STORY_ID|||HEADLINE
 
 Exemples :
 KEEP|||{current_story_id}|||{current.get("headline", "")}
-CHANGE|||fr_abc123def456|||Titre réécrit de 65 à 75 caractères factuel et percutant"""
+CHANGE|||fr_{cat}_abc123def456|||Titre réécrit de 60 à 75 caractères factuel et percutant"""
 
-def build_prompt_us(stories_text, current):
+def build_prompt_us(cat, stories_text, current):
     current_age = minutes_since(current.get("updated_at"))
     current_story_id = current.get("story_id") or "none"
+    criteria = CATEGORY_CRITERIA_US[cat]
 
-    return f"""You are the Editor-in-Chief of INSTANT US, a minimalist news app.
+    return f"""You are the Editor-in-Chief of INSTANT US for the [{cat.upper()}] category.
 
 PRODUCT PROMISE
-INSTANT shows ONE story: the single most critical story that matters to the US audience right now.
+INSTANT shows ONE story per category: the single most critical story that matters right now.
+Editorial compass: If the reader could know only one story from this category right now, which one would they regret missing the most?
 The biggest risk is noise: changing stories too often for superficial updates.
 Prioritize RELEVANCE, NATIONAL PROXIMITY and STABILITY over freshness for its own sake.
 
@@ -591,39 +615,24 @@ DISPLAYED FOR: {current_age if current_age is not None else "unknown"} minutes
 ============================================================
 MISSION
 ============================================================
-Choose ONE story. Two actions:
-1. KEEP: Current story remains the best choice.
-2. CHANGE: Another story is clearly superior and justifies a switch.
-
-If two stories are close in importance, KEEP.
+Choose ONE story.
+- If current STORY_ID is "none" or empty : You MUST choose ACTION CHANGE to establish the initial standout headline.
+- If a story is already displayed :
+  1. KEEP: Current story remains the best choice.
+  2. CHANGE: Another story is clearly superior and justifies a switch.
 
 STRICT SINGLE STORY RULE (NO HYBRID / FRANKENSTEIN HEADLINES)
 - The headline must focus on ONE SINGLE event.
 - STRICTLY FORBIDDEN to combine two separate news events using connectors ('as', 'while', 'and', 'amid').
-- If you select a story, elaborate on its key consequence—NEVER append a second parallel story just to fill space.
+- Elaborate on key consequences—NEVER append a second parallel story just to fill space.
 
-PROXIMITY & NATIONAL IMPACT (STRICT)
-- The story must directly impact the United States, American citizens, institutions, or the national economy.
-- Foreign news is strictly limited to world-shifting events (major war outbreak, mass casualty attacks, global economic shocks directly involving the US).
-- Reject foreign bilateral moves or local foreign politics without direct US involvement.
-
-PRIORITIES
-- Major federal government/executive actions, legislation passed, Supreme Court decisions.
-- Major economic shocks or events affecting everyday life for the US population.
-- Major national emergencies or catastrophes.
-
-WEATHER
-Include weather ONLY for genuine catastrophic emergencies (mass casualties, major destruction, Red-level alerts).
-Strictly exclude routine seasonal advisories and summer storms.
-
-LEGAL & POLITICS
-Include legal proceedings ONLY for top-tier national leaders or Supreme Court decisions. Exclude ordinary criminal cases, local crimes, and political horse-race speculation.
+{criteria}
 
 HEADLINE
-If CHANGE, write a US headline:
-- Direct, factual, authoritative, information-dense.
-- Target: 65 to 75 characters (approx. ~70 chars).
-- Structure: WHAT HAPPENED + KEY ACTOR + KEY CONSEQUENCE.
+If CHANGE, write a headline:
+- Crisp, authoritative major newspaper style, completely self-contained.
+- Structure: Active sentence OR "Topic: Specific Action".
+- Target: min 60 to max 75 characters (ideally ~68 to 72 chars).
 - Use curly apostrophes (’ only).
 
 STRICT OUTPUT
@@ -632,14 +641,14 @@ ACTION|||STORY_ID|||HEADLINE
 
 Examples:
 KEEP|||{current_story_id}|||{current.get("headline", "")}
-CHANGE|||us_abc123def456|||Factual and authoritative headline between 65 and 75 chars"""
+CHANGE|||us_{cat}_abc123def456|||Factual and authoritative headline between 60 and 75 chars"""
 
 # ============================================================
 # GEMINI ENGINE
 # ============================================================
 
 def get_gemini_client():
-    api_key = os.environ.get("GEMINI_API_KEY")
+    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
     if not api_key:
         print("❌ [GEMINI] GEMINI_API_KEY absente.", flush=True)
         return None
@@ -647,7 +656,7 @@ def get_gemini_client():
         from google import genai
         return genai.Client(api_key=api_key)
     except Exception as e:
-        print(f"❌ [GEMINI] Erreur SDK : {e}", flush=True)
+        print(f"❌ [GEMINI] SDK error : {e}", flush=True)
         return None
 
 def parse_gemini_decision(raw):
@@ -656,7 +665,6 @@ def parse_gemini_decision(raw):
     raw = raw.strip().replace("```", "").strip()
     parts = raw.split("|||", 2)
     if len(parts) != 3:
-        print(f"⚠️ [GEMINI] Format invalide : {raw[:150]}", flush=True)
         return None
     action = parts[0].strip().upper()
     story_id = parts[1].strip()
@@ -669,35 +677,39 @@ def choose_best_article(story):
     articles = story.get("articles", [])
     return articles[-1] if articles else None
 
-def should_block_switch(lang, selected_story):
-    current = current_news[lang]
+def should_block_switch(lang, cat, selected_story):
+    current = current_news[lang][cat]
     current_story_id = current.get("story_id")
     if not current_story_id or selected_story["story_id"] == current_story_id:
         return False
-    current_age = current_story_age_minutes(lang)
+    current_age = current_story_age_minutes(lang, cat)
     if current_age is not None and current_age < MIN_STORY_HOLD_MINUTES:
         if selected_story.get("source_count", 0) >= 4:
             return False
         return True
     return False
 
-def evaluate_news(lang, stories):
+def evaluate_category(lang, cat, stories):
     client = get_gemini_client()
     if client is None:
         return None
 
-    current = current_news[lang]
-    ranked_stories = rank_stories(stories, lang)[:MAX_STORIES_FOR_GEMINI]
+    current = current_news[lang][cat]
+    ranked_stories = rank_stories(stories, lang, cat)[:MAX_STORIES_FOR_GEMINI]
     if not ranked_stories:
         return None
 
-    stories_text = format_stories_for_prompt(ranked_stories, lang)
-    prompt = build_prompt_fr(stories_text, current) if lang == "FR" else build_prompt_us(stories_text, current)
+    stories_text = format_stories_for_prompt(ranked_stories, lang, cat)
+    prompt = build_prompt_fr(cat, stories_text, current) if lang == "FR" else build_prompt_us(cat, stories_text, current)
 
     for model_name in MODELS_TO_TRY:
         try:
-            print(f"🤖 [GEMINI] {lang} → {model_name}", flush=True)
-            response = client.models.generate_content(model=model_name, contents=prompt)
+            print(f"🤖 [GEMINI] [{lang} - {cat.upper()}] → {model_name}", flush=True)
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config={"http_options": {"timeout": 45000}}
+            )
             if not response or not response.text:
                 continue
 
@@ -709,26 +721,37 @@ def evaluate_news(lang, stories):
 
             if action == "KEEP":
                 if not current.get("story_id"):
+                    first_story = ranked_stories[0]
+                    article = choose_best_article(first_story)
+                    if article:
+                        return {
+                            "action": "CHANGE",
+                            "story_id": first_story["story_id"],
+                            "headline": first_story["headline"],
+                            "url": article["url"],
+                            "source": article["source"],
+                            "article_id": article["id"],
+                        }
                     continue
-                print(f"↩️ [GEMINI] KEEP {lang} : {current['headline']}", flush=True)
+                print(f"↩️ [GEMINI] KEEP [{lang} - {cat}] : {current['headline'][:50]}...", flush=True)
                 return {"action": "KEEP", "story_id": current["story_id"], "headline": current["headline"]}
 
             selected_story = next((s for s in ranked_stories if s["story_id"] == story_id), None)
             if not selected_story:
-                selected_story = story_memory[lang].get(story_id)
+                selected_story = story_memory[lang][cat].get(story_id)
 
             if not selected_story or not validate_headline(headline):
                 continue
 
-            if should_block_switch(lang, selected_story):
-                print(f"🛑 [STABILITY] Changement bloqué (inertie) pour {lang} : {headline}", flush=True)
+            if should_block_switch(lang, cat, selected_story):
+                print(f"🛑 [STABILITY] Changement bloqué (inertie) pour [{lang} - {cat}] : {headline}", flush=True)
                 return {"action": "KEEP", "story_id": current.get("story_id"), "headline": current.get("headline")}
 
             article = choose_best_article(selected_story)
             if not article:
                 continue
 
-            print(f"🔄 [GEMINI] CHANGE {lang} → {headline}", flush=True)
+            print(f"🔄 [GEMINI] CHANGE [{lang} - {cat}] → {headline}", flush=True)
             return {
                 "action": "CHANGE",
                 "story_id": selected_story["story_id"],
@@ -738,23 +761,26 @@ def evaluate_news(lang, stories):
                 "article_id": article["id"],
             }
         except Exception as err:
-            print(f"↳ Tentative {model_name} : {str(err)[:120]}...", flush=True)
+            err_msg = str(err)
+            print(f"↳ Tentative {model_name} : {err_msg[:100]}...", flush=True)
+            if "429" in err_msg or "RESOURCE_EXHAUSTED" in err_msg:
+                time.sleep(8)
             continue
 
-    print(f"❌ [GEMINI] Aucun modèle n'a pu répondre pour {lang}.", flush=True)
+    print(f"❌ [GEMINI] Aucun modèle n'a pu répondre pour [{lang} - {cat}].", flush=True)
     return None
 
-def apply_result(lang, result):
+def apply_result(lang, cat, result):
     if not result or result.get("action") != "CHANGE":
         return
 
-    old = current_news[lang].copy()
+    old = current_news[lang][cat].copy()
     new_story_id = result.get("story_id")
-    selected_story = story_memory[lang].get(new_story_id)
+    selected_story = story_memory[lang][cat].get(new_story_id)
     if not selected_story:
         return
 
-    current_news[lang] = {
+    current_news[lang][cat] = {
         "headline": result["headline"],
         "url": result["url"],
         "source": result["source"],
@@ -764,39 +790,59 @@ def apply_result(lang, result):
     }
 
     selected_story["last_selected_at"] = now_iso()
-    story_memory[lang][new_story_id] = selected_story
+    story_memory[lang][cat][new_story_id] = selected_story
 
-    history[lang].append({
+    history[lang][cat].append({
         "changed_at": now_iso(),
         "from_story_id": old.get("story_id"),
         "from_headline": old.get("headline"),
         "to_story_id": new_story_id,
         "to_headline": result["headline"],
     })
-    history[lang] = history[lang][-MAX_HISTORY:]
+    history[lang][cat] = history[lang][cat][-MAX_HISTORY:]
 
-    print(f"📢 [{lang}] {result['headline']}", flush=True)
+    print(f"📢 [{lang} - {cat.upper()}] {result['headline']}", flush=True)
     print(f"   ↳ {result['source']} → {result['url']}", flush=True)
 
 # ============================================================
-# HTML & HTTP SERVER
+# CYCLE PRINCIPAL & SERVEUR HTTP
 # ============================================================
 
-def update_html_files():
-    json_payload = json.dumps(current_news, ensure_ascii=False)
-    for filename in ["app.html", "index.html"]:
-        if not os.path.exists(filename):
-            continue
-        try:
-            with open(filename, "r", encoding="utf-8") as file:
-                content = file.read()
-            pattern = r'(<script id="news-data" type="application/json">).*?(</script>)'
-            replacement = rf'\1\n  {json_payload}\n  \2'
-            new_content = re.sub(pattern, replacement, content, flags=re.DOTALL)
-            with open(filename, "w", encoding="utf-8") as file:
-                file.write(new_content)
-        except Exception as e:
-            print(f"⚠️ [HTML] {filename} : {str(e)[:80]}", flush=True)
+refresh_lock = threading.Lock()
+
+def process_category(lang, cat):
+    try:
+        sources = FEEDS[lang].get(cat, [])
+        items = fetch_rss_items(sources)
+        if not items:
+            return
+
+        detected_stories = cluster_articles(items, lang, cat)
+        active_stories = merge_stories_into_memory(lang, cat, detected_stories)
+        active_story_list = list(active_stories.values())
+        if not active_story_list:
+            return
+
+        result = evaluate_category(lang, cat, active_story_list)
+        apply_result(lang, cat, result)
+    except Exception as e:
+        print(f"⚠️ [{lang} - {cat}] Erreur : {e}", flush=True)
+
+def check_and_update():
+    if not refresh_lock.acquire(blocking=False):
+        print("⏳ [REFRESH] Évaluation déjà en cours.", flush=True)
+        return
+
+    try:
+        print(f"\n[{time.strftime('%H:%M:%S')}] --- ÉVALUATION INSTANT MULTI-CATÉGORIES ---", flush=True)
+        for lang in ["FR", "US"]:
+            for cat in CATEGORIES:
+                process_category(lang, cat)
+                time.sleep(4.0)
+        save_state()
+        print("--- FIN ÉVALUATION ---\n", flush=True)
+    finally:
+        refresh_lock.release()
 
 class InstantAppHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
@@ -817,121 +863,37 @@ class InstantAppHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(json.dumps(current_news, ensure_ascii=False).encode("utf-8"))
             return
 
-        if self.path.startswith("/api/history"):
-            self.send_response(200)
-            self.send_header("Content-type", "application/json; charset=utf-8")
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
-            self.end_headers()
-            self.wfile.write(json.dumps(history, ensure_ascii=False).encode("utf-8"))
-            return
-
-        if self.path.startswith("/api/stories"):
-            self.send_response(200)
-            self.send_header("Content-type", "application/json; charset=utf-8")
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
-            self.end_headers()
-            self.wfile.write(json.dumps(story_memory, ensure_ascii=False).encode("utf-8"))
-            return
-
-        if self.path == "/manifest.json":
-            manifest = {
-                "short_name": "Instant",
-                "name": "INSTANT",
-                "start_url": "/?pwa=1",
-                "display": "standalone",
-                "background_color": "#000000",
-                "theme_color": "#000000",
-            }
-            self.send_response(200)
-            self.send_header("Content-type", "application/json; charset=utf-8")
-            self.end_headers()
-            self.wfile.write(json.dumps(manifest, ensure_ascii=False).encode("utf-8"))
-            return
-
-        if self.path in ["/", "/index.html", "/app.html"]:
-            filename = "app.html" if os.path.exists("app.html") else "index.html"
-            if os.path.exists(filename):
-                self.send_response(200)
-                self.send_header("Content-type", "text/html; charset=utf-8")
-                self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
-                self.end_headers()
-                with open(filename, "rb") as file:
-                    self.wfile.write(file.read())
-                return
-
         return super().do_GET()
 
 def run_http_server():
     port = int(os.environ.get("PORT", 10000))
     socketserver.TCPServer.allow_reuse_address = True
     with socketserver.TCPServer(("", port), InstantAppHandler) as httpd:
-        print(f"🌐 [SERVER] Port {port}", flush=True)
+        print(f"🌐 [SERVER] Serveur actif sur le port {port}", flush=True)
         httpd.serve_forever()
-
-# ============================================================
-# CYCLE PRINCIPAL
-# ============================================================
-
-refresh_lock = threading.Lock()
-
-def process_language(lang, sources):
-    try:
-        items = fetch_rss_items(sources)
-        print(f"📰 [{lang}] {len(items)} articles récupérés", flush=True)
-        if not items:
-            return
-
-        detected_stories = cluster_articles(items, lang)
-        print(f"🧩 [{lang}] {len(items)} articles → {len(detected_stories)} stories", flush=True)
-
-        active_stories = merge_stories_into_memory(lang, detected_stories)
-        active_story_list = list(active_stories.values())
-        if not active_story_list:
-            return
-
-        result = evaluate_news(lang, active_story_list)
-        apply_result(lang, result)
-    except Exception as e:
-        print(f"⚠️ [{lang}] Erreur : {e}", flush=True)
-
-def check_and_update():
-    if not refresh_lock.acquire(blocking=False):
-        print("⏳ [REFRESH] Évaluation déjà en cours.", flush=True)
-        return
-
-    try:
-        print(f"\n[{time.strftime('%H:%M:%S')}] --- ÉVALUATION INSTANT V2 ---", flush=True)
-        process_language("FR", SOURCES_FR)
-        process_language("US", SOURCES_US)
-        save_state()
-        update_html_files()
-        print("--- FIN ÉVALUATION ---\n", flush=True)
-    finally:
-        refresh_lock.release()
 
 # ============================================================
 # DÉMARRAGE
 # ============================================================
 
-load_state()
+if __name__ == "__main__":
+    load_state()
 
-threading.Thread(target=run_http_server, daemon=True).start()
-threading.Thread(target=check_and_update, daemon=True).start()
+    threading.Thread(target=run_http_server, daemon=True).start()
+    threading.Thread(target=check_and_update, daemon=True).start()
 
-schedule.every().hour.at(":00").do(lambda: threading.Thread(target=check_and_update, daemon=True).start())
-schedule.every().hour.at(":30").do(lambda: threading.Thread(target=check_and_update, daemon=True).start())
+    schedule.every().hour.at(":00").do(lambda: threading.Thread(target=check_and_update, daemon=True).start())
+    schedule.every().hour.at(":30").do(lambda: threading.Thread(target=check_and_update, daemon=True).start())
 
-print("⏱️ [SCHEDULER] Refresh toutes les 30 minutes", flush=True)
+    print("⏱️ [SCHEDULER] Refresh actif toutes les 30 minutes\n", flush=True)
 
-while True:
-    try:
-        schedule.run_pending()
-        time.sleep(1)
-    except KeyboardInterrupt:
-        print("\n🛑 [STOP] Arrêt demandé.", flush=True)
-        break
-    except Exception as e:
-        print(f"⚠️ [MAIN LOOP] {e}", flush=True)
-        time.sleep(2)
+    while True:
+        try:
+            schedule.run_pending()
+            time.sleep(1)
+        except KeyboardInterrupt:
+            print("\n🛑 [STOP] Arrêt demandé.", flush=True)
+            break
+        except Exception as e:
+            print(f"⚠️ [MAIN LOOP] {e}", flush=True)
+            time.sleep(2)

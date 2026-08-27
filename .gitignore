@@ -1,0 +1,7 @@
+.DS_Store
+__pycache__/
+*.tmp
+instant_categories_state.json
+instant_state.json
+news_categories.json
+_archive/

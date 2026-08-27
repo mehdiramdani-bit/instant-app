@@ -169,7 +169,7 @@
     .slide[data-theme="general"] {
       background-color: #000000;
     }
-    .slide[data-theme="monde"] {
+    .slide[data-theme="politique"] {
       background: radial-gradient(ellipse 75% 65% at 38% 50%, #201308 0%, #0f0803 55%, #000000 100%);
     }
     .slide[data-theme="eco"] {
@@ -338,7 +338,7 @@
         <span class="lang-sep">|</span>
         <button id="btn-us" class="lang-btn" onclick="setLang('US')">US</button>
       </div>
-      <button class="info-btn" aria-label="À propos" onclick="openModal()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button>
+      <button class="info-btn" aria-label="À propos" onclick="openModal()">⃳</button>
     </div>
   </header>
 
@@ -379,12 +379,12 @@
 
   <script>
     const CATEGORIES = [
-    { key: "general", label_fr: "France", label_us: "United States" },
-    { key: "monde", label_fr: "International", label_us: "World" },
-    { key: "eco", label_fr: "Économie", label_us: "Economy" },
-    { key: "tech", label_fr: "Tech & IA", label_us: "Tech & AI" },
-    { key: "sciences", label_fr: "Planète et Sciences", label_us: "Planet & Science" }
-];
+      { key: "general", label_fr: "Général", label_us: "General" },
+      { key: "politique", label_fr: "Politique", label_us: "Politics" },
+      { key: "eco", label_fr: "Ãconomie", label_us: "Economy" },
+      { key: "tech", label_fr: "Tech & IA", label_us: "Tech & AI" },
+      { key: "sciences", label_fr: "Planète et sciences", label_us: "Planet & Science" }
+    ];
 
     let newsData = { "FR": [], "US": [] };
     let currentLang = 'FR';
