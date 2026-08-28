@@ -215,7 +215,7 @@ def validate_headline(headline):
     if not headline:
         return False
     length = len(headline.strip())
-    if length < 55 or length > 85:
+    if length < 55 or length > 80:
         return False
     return True
 
@@ -741,11 +741,7 @@ def evaluate_category(lang, cat, stories):
             if not selected_story:
                 continue
 
-            # Ajustement si léger dépassement
-            if len(headline) > 75:
-                trimmed = headline[:74].rsplit(" ", 1)[0]
-                if len(trimmed) >= 55:
-                    headline = trimmed
+# Pas de découpage de phrase mécanique
 
             if not validate_headline(headline):
                 continue
