@@ -32,7 +32,6 @@ ARTICLES_PER_SOURCE = 7
 MAX_STORIES_FOR_GEMINI = 12
 
 MODELS_TO_TRY = [
-    "gemini-flash-latest",
     "gemini-flash-lite-latest",
 ]
 
@@ -216,7 +215,7 @@ def validate_headline(headline):
     if not headline:
         return False
     length = len(headline.strip())
-    if length < 55 or length > 80:
+    if length < 50 or length > 80:
         return False
     return True
 
