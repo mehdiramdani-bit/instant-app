@@ -78,16 +78,19 @@ def load_state():
         for lang in ["FR", "US"]:
             if lang in saved.get("current_news", {}):
                 for cat in CATEGORIES:
+                    time.sleep(1.5)
                     if cat in saved["current_news"][lang]:
                         current_news[lang][cat].update(saved["current_news"][lang][cat])
 
             if lang in saved.get("story_memory", {}):
                 for cat in CATEGORIES:
+                    time.sleep(1.5)
                     if cat in saved["story_memory"][lang]:
                         story_memory[lang][cat].update(saved["story_memory"][lang][cat])
 
             if lang in saved.get("history", {}):
                 for cat in CATEGORIES:
+                    time.sleep(1.5)
                     if cat in saved["history"][lang]:
                         history[lang][cat] = saved["history"][lang][cat][-MAX_HISTORY:]
 
@@ -113,7 +116,9 @@ def save_state():
 def export_news_for_ui():
     ui_payload = {"FR": [], "US": []}
     for lang in ["FR", "US"]:
+        selected_links_for_lang = set()
         for cat in CATEGORIES:
+            time.sleep(1.5)
             item = current_news[lang][cat]
             ui_payload[lang].append({
                 "category": cat,
@@ -389,23 +394,20 @@ def story_is_current(lang, cat, story_id):
     return current_news[lang][cat].get("story_id") == story_id
 
 def basic_story_score(story):
-    sources = min(story.get("source_count", 0), 5)
+    sources = story.get("source_count", 0)
     seen_count = min(story.get("seen_count", 0), 5)
-    return sources * 10 + seen_count * 3
+    # Multiplicateur très lourd pour imposer le consensus médiatique
+    if sources >= 2:
+        return (sources * 50) + (seen_count * 3)
+    return seen_count
 
 def rank_stories(stories, lang, cat):
-    ranked = []
-    for story in stories:
-        score = basic_story_score(story)
-        if story_is_current(lang, cat, story["story_id"]):
-            score += 8
-        ranked.append((score, story))
-    ranked.sort(key=lambda x: x[0], reverse=True)
-    return [story for score, story in ranked]
-
-# ============================================================
-# RSS FETCH
-# ============================================================
+    # Règle absolue de consensus : tri par nombre de rédactions concordantes en priorité
+    return sorted(
+        stories,
+        key=lambda s: (s.get("source_count", 0), s.get("seen_count", 0)),
+        reverse=True
+    )
 
 def fetch_rss_items(sources):
     items = []
@@ -429,6 +431,19 @@ def fetch_rss_items(sources):
                 link = getattr(entry, "link", "").strip()
 
                 if not title or not link:
+                    continue
+
+                # Exclusion des titres interrogatifs et décryptages spéculatifs
+                if title.strip().endswith("?") or title.strip().endswith("? »") or "a-t-il" in title.lower() or "a-t-elle" in title.lower() or "pourquoi le " in title.lower():
+                    continue
+
+                # Exclusion des replays, chroniques et agendas d'émissions radio/TV
+                t_lower = title.lower()
+                if any(x in t_lower for x in [
+                    "l'éco du monde", "good morning business", "les experts :", 
+                    "intégrale bourse", "le grand journal de l'éco", "la quotidienne",
+                    "podcast", "replay"
+                ]) or re.search(r"-\s*\d{2}/\d{2}$", title.strip()):
                     continue
 
                 norm_key = re.sub(r"[^\w\s]", "", title.lower()).strip()
@@ -557,8 +572,12 @@ HEADLINE: "{current.get("headline", "")}"
 AFFICHÉE DEPUIS: {current_age if current_age is not None else "inconnu"} minutes
 
 ============================================================
-MISSION
+MISSION & CONSENSUS ÉDITORIAL (RÈGLE ABSOLUE)
 ============================================================
+1. CONSENSUS ÉDITORIAL ABSOLU : Choisis TOUJOURS la story portée par le plus grand nombre de sources distinctes (SOURCE_COUNT le plus élevé). Aucun angle isolé ou papier de fond ne peut être sélectionné face à un événement partagé par les rédactions.
+2. SELECTION DE L'ÉVÉNEMENT MAJEUR : Choisis le fait brut le plus lourd en vies humaines, en impact géopolitique ou en conséquences concrètes (ex: inondations historiques, sommets, accords).
+3. INTERDICTION DES TITRES INTERROGATIFS OU D'OPINION : Ton titre ne doit jamais être une question ni une analyse subjective.
+
 Choisis UNE story.
 - Si STORY_ID actuel est "none" ou vide : Tu DOIS obligatoirement faire une action CHANGE pour sélectionner et rédiger la première actualité de référence.
 - Si une story est déjà affichée :
@@ -585,7 +604,12 @@ ACTION|||STORY_ID|||HEADLINE
 
 Exemples :
 KEEP|||{current_story_id}|||{current.get("headline", "")}
-CHANGE|||fr_{cat}_abc123def456|||Titre réécrit de 60 à 75 caractères factuel et percutant"""
+CHANGE|||fr_{cat}_abc123def456|||Titre réécrit de 60 à 75 caractères factuel et percutant
+
+- FILTRE POLITIQUE & SOCIÉTÉ [FR - GENERAL] :
+  * PRIVILÉGIER : Les faits institutionnels tangibles, décisions de l'exécutif en exercice (gouvernement, ministères), lois adoptées ou débattues au Parlement, décisions de justice, mouvements sociaux et transformations de la société française.
+  * EXCLUSION STRICTE : Tout discours de campagne, promesse électorale, proposition de programme ou petite phrase émanant de candidats à des élections (présidentielle, législatives, etc.) n'exerçant pas de fonction exécutive directe. Ne retiens pas de simples intentions ou polémiques de campagne sans impact institutionnel immédiat.
+"""
 
 def build_prompt_us(cat, stories_text, current):
     current_age = minutes_since(current.get("updated_at"))
@@ -613,8 +637,12 @@ HEADLINE: "{current.get("headline", "")}"
 DISPLAYED FOR: {current_age if current_age is not None else "unknown"} minutes
 
 ============================================================
-MISSION
+MISSION & MANDATORY EDITORIAL CONSENSUS
 ============================================================
+1. STRICT CONSENSUS MANDATE : ALWAYS select the story backed by the highest number of distinct outlets (highest SOURCE_COUNT). Never pick an isolated story when a multi-source news event is present.
+2. BREAKING FACTUAL IMPACT: Choose the single biggest verified hard news event (human toll, major economic/policy shift, structural breakthrough) over cold analysis or feature pieces.
+3. NO QUESTIONS OR CLICKBAIT: Never output a headline formatted as a question, rumor, or subjective opinion.
+
 Choose ONE story.
 - If current STORY_ID is "none" or empty : You MUST choose ACTION CHANGE to establish the initial standout headline.
 - If a story is already displayed :
@@ -689,13 +717,59 @@ def should_block_switch(lang, cat, selected_story):
         return True
     return False
 
+def clean_typography(title: str, lang: str = "FR") -> str:
+    if not title:
+        return title
+    title = title.strip()
+    # Remplacement systématique de tous les types de guillemets (FR et courbes) par des guillemets droits US
+    title = re.sub(r'[«»“”„‟]', '"', title)
+    # Suppression des espaces intérieurs parasites
+    title = re.sub(r'"\s+', '"', title)
+    title = re.sub(r'\s+"', '"', title)
+    return title
+
+def enforce_strict_calibration(headline: str, lang: str = "FR") -> str:
+    """Garantit un calibrage strict entre 65 et 75 caractères."""
+    headline = clean_typography(headline, lang)
+    if 65 <= len(headline) <= 75:
+        return headline
+
+    if lang == "FR":
+        p = f"""Réécris ce titre pour qu'il fasse STRICTEMENT entre 65 et 75 caractères (espaces compris). Cible idéale : 70 caractères.
+Titre : {headline}
+Retourne UNIQUEMENT le texte réécrit."""
+    else:
+        p = f"""Rewrite this headline to be STRICTLY between 65 and 75 characters (including spaces). Target: 70 characters.
+Headline: {headline}
+Return ONLY the rewritten headline."""
+
+    try:
+        raw = call_gemini(p)
+        cleaned = clean_typography(raw, lang)
+        if 65 <= len(cleaned) <= 75:
+            return cleaned
+        if len(cleaned) > 75:
+            trimmed = cleaned[:75]
+            if " " in trimmed:
+                trimmed = trimmed.rsplit(" ", 1)[0]
+            return trimmed
+    except Exception:
+        pass
+    return headline
+
+
 def evaluate_category(lang, cat, stories):
     client = get_gemini_client()
     if client is None:
         return None
 
     current = current_news[lang][cat]
-    ranked_stories = rank_stories(stories, lang, cat)[:MAX_STORIES_FOR_GEMINI]
+        # Consensus absolu : si au moins 1 story a plusieurs sources, on éradique les sources uniques
+    multi_source = [s for s in stories if s.get("source_count", 0) >= 2]
+    candidate_stories = multi_source if multi_source else stories
+    ranked_stories = rank_stories(candidate_stories, lang, cat)[:MAX_STORIES_FOR_GEMINI]
+    if not ranked_stories:
+        return None
     if not ranked_stories:
         return None
 
@@ -837,6 +911,7 @@ def check_and_update():
         print(f"\n[{time.strftime('%H:%M:%S')}] --- ÉVALUATION INSTANT MULTI-CATÉGORIES ---", flush=True)
         for lang in ["FR", "US"]:
             for cat in CATEGORIES:
+                time.sleep(1.5)
                 process_category(lang, cat)
                 time.sleep(4.0)
         save_state()
