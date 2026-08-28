@@ -209,6 +209,7 @@ def sanitize_headline(text):
                 return " : " + w.lower()
             return m.group(0)
         text = re.sub(r" :\s+([A-Za-zÀ-ÖØ-öø-ÿ]+)", _lower_after, text)
+    text = text.strip().rstrip(".")
     return clean_typography(text.strip())
 
 def validate_headline(headline):
@@ -646,6 +647,7 @@ If CHANGE, write a headline:
 - Crisp, authoritative major newspaper style, completely self-contained.
 - Format: 10 to 13 words maximum (strict length: between 55 and 78 characters, spaces included).
 - Use curly apostrophes (’ only).
+- NO TRAILING PERIOD: headline must never end with a period (".").
 
 STRICT OUTPUT
 Return exactly one single line:
