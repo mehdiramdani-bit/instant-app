@@ -588,7 +588,7 @@ Si CHANGE, rédige un titre :
 - RÉÉCRITURE OBLIGATOIRE : Interdiction de recopier le titre brut d'un flux.
 - PHRASE INTÉGRALE OBLIGATOIRE : Le titre doit former une phrase syntaxiquement finie et complète. Interdiction absolue de laisser un mot ou une proposition en suspens.
 - Style grand quotidien : fluide, percutant et autonome.
-- Longueur cible : STRICTEMENT entre 65 et 75 caractères (espaces compris, idéalement 70 car.).
+- Format : 10 à 13 mots maximum (longueur impérative : entre 55 et 78 caractères, espaces compris).
 - Utilise l'apostrophe courbe (’).
 
 SORTIE STRICTE
@@ -644,7 +644,7 @@ If CHANGE, write a headline:
 - MANDATORY REWRITE: Do not copy verbatim raw RSS feed titles.
 - MANDATORY COMPLETE SENTENCE: Headline must be fully grammatically self-contained. Never leave a dangling word or unfinished clause.
 - Crisp, authoritative major newspaper style, completely self-contained.
-- Target: STRICTLY between 65 and 75 characters (including spaces, ideally 70 chars).
+- Format: 10 to 13 words maximum (strict length: between 55 and 78 characters, spaces included).
 - Use curly apostrophes (’ only).
 
 STRICT OUTPUT
