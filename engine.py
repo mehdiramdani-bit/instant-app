@@ -760,8 +760,20 @@ def evaluate_category(lang, cat, stories):
             if not selected_story:
                 selected_story = story_memory[lang][cat].get(story_id)
 
-            if not selected_story or not validate_headline(headline):
+            if not selected_story:
                 continue
+
+            headline = clean_typography(headline, lang)
+            # Ajustement si léger dépassement
+            if len(headline) > 75:
+                trimmed = headline[:74].rsplit(" ", 1)[0]
+                if len(trimmed) >= 60:
+                    headline = trimmed
+            
+            if not validate_headline(headline):
+                # Si encore hors limite, on accepte entre 60 et 80 pour ne pas perdre la catégorie
+                if not (60 <= len(headline) <= 80):
+                    continue
 
             if should_block_switch(lang, cat, selected_story):
                 print(f"🛑 [STABILITY] Changement bloqué (inertie) pour [{lang} - {cat}] : {headline}", flush=True)
@@ -858,7 +870,7 @@ def check_and_update():
         for lang in ["FR", "US"]:
             for cat in CATEGORIES:
                 process_category(lang, cat)
-                time.sleep(4.0)
+                time.sleep(5.5)
         save_state()
         print("--- FIN ÉVALUATION ---\n", flush=True)
     finally:
