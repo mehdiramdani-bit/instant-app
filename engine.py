@@ -32,8 +32,6 @@ ARTICLES_PER_SOURCE = 7
 MAX_STORIES_FOR_GEMINI = 12
 
 MODELS_TO_TRY = [
-    os.environ.get("GEMINI_MODEL", "gemini-3.6-flash"),
-    "gemini-3.5-flash",
     "gemini-flash-lite-latest",
 ]
 
