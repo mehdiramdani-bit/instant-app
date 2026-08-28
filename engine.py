@@ -586,6 +586,7 @@ SUJET UNIQUE ET STRICT (INTERDICTION DES TITRES CHIMÈRES / HYBRIDES)
 HEADLINE
 Si CHANGE, rédige un titre :
 - RÉÉCRITURE OBLIGATOIRE : Interdiction de recopier le titre brut d'un flux.
+- PHRASE INTÉGRALE OBLIGATOIRE : Le titre doit former une phrase syntaxiquement finie et complète. Interdiction absolue de laisser un mot ou une proposition en suspens.
 - Style grand quotidien : fluide, percutant et autonome.
 - Longueur cible : STRICTEMENT entre 65 et 75 caractères (espaces compris, idéalement 70 car.).
 - Utilise l'apostrophe courbe (’).
@@ -641,6 +642,7 @@ STRICT SINGLE STORY RULE (NO HYBRID / FRANKENSTEIN HEADLINES)
 HEADLINE
 If CHANGE, write a headline:
 - MANDATORY REWRITE: Do not copy verbatim raw RSS feed titles.
+- MANDATORY COMPLETE SENTENCE: Headline must be fully grammatically self-contained. Never leave a dangling word or unfinished clause.
 - Crisp, authoritative major newspaper style, completely self-contained.
 - Target: STRICTLY between 65 and 75 characters (including spaces, ideally 70 chars).
 - Use curly apostrophes (’ only).
