@@ -32,7 +32,8 @@ ARTICLES_PER_SOURCE = 7
 MAX_STORIES_FOR_GEMINI = 12
 
 MODELS_TO_TRY = [
-    "gemini-flash-lite-latest"
+    os.environ.get("GEMINI_MODEL", "gemini-3.6-flash"),
+    "gemini-flash-lite-latest",
 ]
 
 CATEGORIES = ["general", "monde", "eco", "tech", "sciences"]
@@ -769,7 +770,7 @@ def evaluate_category(lang, cat, stories):
             err_msg = str(err)
             print(f"↳ Tentative {model_name} : {err_msg[:100]}...", flush=True)
             if "429" in err_msg or "RESOURCE_EXHAUSTED" in err_msg:
-                time.sleep(10)
+                time.sleep(7.0)
             continue
 
     print(f"❌ [GEMINI] Aucun modèle n'a pu répondre pour [{lang} - {cat}].", flush=True)
@@ -843,7 +844,7 @@ def check_and_update():
         for lang in ["FR", "US"]:
             for cat in CATEGORIES:
                 process_category(lang, cat)
-                time.sleep(5.5)
+                time.sleep(7.0)
         save_state()
         print("--- FIN ÉVALUATION ---\n", flush=True)
     finally:
@@ -901,4 +902,4 @@ if __name__ == "__main__":
             break
         except Exception as e:
             print(f"⚠️ [MAIN LOOP] {e}", flush=True)
-            time.sleep(2)
+            time.sleep(7.0)
