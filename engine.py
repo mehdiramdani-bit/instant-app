@@ -204,7 +204,7 @@ def validate_headline(headline):
     if not headline:
         return False
     length = len(headline.strip())
-    if length < 25 or length > 130:
+    if length < 65 or length > 75:
         return False
     return True
 
@@ -582,9 +582,10 @@ SUJET UNIQUE ET STRICT (INTERDICTION DES TITRES CHIMÈRES / HYBRIDES)
 
 HEADLINE
 Si CHANGE, rédige un titre :
-- Style grand quotidien : fluide, percutant et parfaitement intelligible sans contexte.
+- RÉÉCRITURE OBLIGATOIRE : Interdiction formelle de recopier le titre brut d un flux RSS. Synthétise l événement majeur avec tes propres mots.
+- Style grand quotidien : fluide, percutant et autonome.
 - Structure libre : Phrase directe OU formule "Sujet/Cadre : action précise" (minuscule après les deux-points, sauf nom propre).
-- Longueur cible : min 60 à max 75 caractères (idéalement ~68 à 72 car.).
+- Longueur cible : STRICTEMENT entre 65 et 75 caractères (espaces compris, idéalement 70 car.).
 - Utilise l'apostrophe courbe (’).
 
 SORTIE STRICTE
@@ -647,9 +648,10 @@ STRICT SINGLE STORY RULE (NO HYBRID / FRANKENSTEIN HEADLINES)
 
 HEADLINE
 If CHANGE, write a headline:
+- MANDATORY REWRITE: Strictly forbidden to copy verbatim raw RSS feed titles. Synthesize the key development in your own words.
 - Crisp, authoritative major newspaper style, completely self-contained.
 - Structure: Active sentence OR "Topic: Specific Action".
-- Target: min 60 to max 75 characters (ideally ~68 to 72 chars).
+- Target: STRICTLY between 65 and 75 characters (including spaces, ideally 70 chars).
 - Use curly apostrophes (’ only).
 
 STRICT OUTPUT
@@ -738,19 +740,20 @@ def evaluate_category(lang, cat, stories):
 
             action, story_id, headline = decision["action"], decision["story_id"], decision["headline"]
 
+            if action == "CHANGE" and not (65 <= len(headline) <= 75):
+                try:
+                    calib_prompt = f"Réécris ce titre pour qu il fasse STRICTEMENT entre 65 et 75 caractères (espaces compris, cible: 70 car.). Réponds UNIQUEMENT avec le titre réécrit sans guillemets ni explications :\n{headline}" if lang == "FR" else f"Rewrite this headline to be STRICTLY between 65 and 75 characters (including spaces, target: 70 chars). Return ONLY the rewritten text without quotes or explanations:\n{headline}"
+                    r_calib = client.models.generate_content(model=model_name, contents=calib_prompt)
+                    if r_calib and r_calib.text:
+                        c_headline = sanitize_headline(r_calib.text.strip())
+                        if 65 <= len(c_headline) <= 75:
+                            headline = c_headline
+                except Exception:
+                    pass
+
             if action == "KEEP":
                 if not current.get("story_id"):
-                    first_story = ranked_stories[0]
-                    article = choose_best_article(first_story)
-                    if article:
-                        return {
-                            "action": "CHANGE",
-                            "story_id": first_story["story_id"],
-                            "headline": first_story["headline"],
-                            "url": article["url"],
-                            "source": article["source"],
-                            "article_id": article["id"],
-                        }
+                    # Forcer un cycle de réécriture propre si aucun titre n est en mémoire
                     continue
                 print(f"↩️ [GEMINI] KEEP [{lang} - {cat}] : {current['headline'][:50]}...", flush=True)
                 return {"action": "KEEP", "story_id": current["story_id"], "headline": current["headline"]}
