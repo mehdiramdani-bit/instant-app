@@ -78,19 +78,16 @@ def load_state():
         for lang in ["FR", "US"]:
             if lang in saved.get("current_news", {}):
                 for cat in CATEGORIES:
-                    time.sleep(1.5)
                     if cat in saved["current_news"][lang]:
                         current_news[lang][cat].update(saved["current_news"][lang][cat])
 
             if lang in saved.get("story_memory", {}):
                 for cat in CATEGORIES:
-                    time.sleep(1.5)
                     if cat in saved["story_memory"][lang]:
                         story_memory[lang][cat].update(saved["story_memory"][lang][cat])
 
             if lang in saved.get("history", {}):
                 for cat in CATEGORIES:
-                    time.sleep(1.5)
                     if cat in saved["history"][lang]:
                         history[lang][cat] = saved["history"][lang][cat][-MAX_HISTORY:]
 
@@ -116,9 +113,7 @@ def save_state():
 def export_news_for_ui():
     ui_payload = {"FR": [], "US": []}
     for lang in ["FR", "US"]:
-        selected_links_for_lang = set()
         for cat in CATEGORIES:
-            time.sleep(1.5)
             item = current_news[lang][cat]
             ui_payload[lang].append({
                 "category": cat,
@@ -187,24 +182,22 @@ def sanitize_headline(text):
     text = text.strip().strip('"').strip("'")
     text = text.replace("|||", "")
     text = text.replace("'", "’")
-    # 1. Nombres insecables (ex: 1 000 -> 1 000)
     words = text.split(" ")
     fixed = []
     for w in words:
         if fixed and fixed[-1].isdigit() and w.isdigit() and len(w) == 3:
-            fixed[-1] = fixed[-1] + " " + w
+            fixed[-1] = fixed[-1] + " " + w
         else:
             fixed.append(w)
     text = " ".join(fixed)
-    # 2. Deux-points insecables et minuscule forcee
     if ":" in text:
-        text = re.sub(r"\s*:\s*", " : ", text)
+        text = re.sub(r"\s*:\s*", " : ", text)
         def _lower_after(m):
             w = m.group(1)
             if w.lower() in ["les", "la", "le", "un", "une", "des", "ce", "cette", "ces", "son", "sa", "ses", "leur", "leurs", "vers", "pour", "selon", "comment", "pourquoi"]:
-                return " : " + w.lower()
+                return " : " + w.lower()
             return m.group(0)
-        text = re.sub(r" :\s+([A-Za-zÀ-ÖØ-öø-ÿ]+)", _lower_after, text)
+        text = re.sub(r" :\s+([A-Za-zÀ-ÖØ-öø-ÿ]+)", _lower_after, text)
     return text.strip()
 
 def validate_headline(headline):
@@ -396,13 +389,11 @@ def story_is_current(lang, cat, story_id):
 def basic_story_score(story):
     sources = story.get("source_count", 0)
     seen_count = min(story.get("seen_count", 0), 5)
-    # Multiplicateur très lourd pour imposer le consensus médiatique
     if sources >= 2:
         return (sources * 50) + (seen_count * 3)
     return seen_count
 
 def rank_stories(stories, lang, cat):
-    # Règle absolue de consensus : tri par nombre de rédactions concordantes en priorité
     return sorted(
         stories,
         key=lambda s: (s.get("source_count", 0), s.get("seen_count", 0)),
@@ -433,11 +424,9 @@ def fetch_rss_items(sources):
                 if not title or not link:
                     continue
 
-                # Exclusion des titres interrogatifs et décryptages spéculatifs
                 if title.strip().endswith("?") or title.strip().endswith("? »") or "a-t-il" in title.lower() or "a-t-elle" in title.lower() or "pourquoi le " in title.lower():
                     continue
 
-                # Exclusion des replays, chroniques et agendas d'émissions radio/TV
                 t_lower = title.lower()
                 if any(x in t_lower for x in [
                     "l'éco du monde", "good morning business", "les experts :", 
@@ -717,59 +706,15 @@ def should_block_switch(lang, cat, selected_story):
         return True
     return False
 
-def clean_typography(title: str, lang: str = "FR") -> str:
-    if not title:
-        return title
-    title = title.strip()
-    # Remplacement systématique de tous les types de guillemets (FR et courbes) par des guillemets droits US
-    title = re.sub(r'[«»“”„‟]', '"', title)
-    # Suppression des espaces intérieurs parasites
-    title = re.sub(r'"\s+', '"', title)
-    title = re.sub(r'\s+"', '"', title)
-    return title
-
-def enforce_strict_calibration(headline: str, lang: str = "FR") -> str:
-    """Garantit un calibrage strict entre 65 et 75 caractères."""
-    headline = clean_typography(headline, lang)
-    if 65 <= len(headline) <= 75:
-        return headline
-
-    if lang == "FR":
-        p = f"""Réécris ce titre pour qu'il fasse STRICTEMENT entre 65 et 75 caractères (espaces compris). Cible idéale : 70 caractères.
-Titre : {headline}
-Retourne UNIQUEMENT le texte réécrit."""
-    else:
-        p = f"""Rewrite this headline to be STRICTLY between 65 and 75 characters (including spaces). Target: 70 characters.
-Headline: {headline}
-Return ONLY the rewritten headline."""
-
-    try:
-        raw = call_gemini(p)
-        cleaned = clean_typography(raw, lang)
-        if 65 <= len(cleaned) <= 75:
-            return cleaned
-        if len(cleaned) > 75:
-            trimmed = cleaned[:75]
-            if " " in trimmed:
-                trimmed = trimmed.rsplit(" ", 1)[0]
-            return trimmed
-    except Exception:
-        pass
-    return headline
-
-
 def evaluate_category(lang, cat, stories):
     client = get_gemini_client()
     if client is None:
         return None
 
     current = current_news[lang][cat]
-        # Consensus absolu : si au moins 1 story a plusieurs sources, on éradique les sources uniques
     multi_source = [s for s in stories if s.get("source_count", 0) >= 2]
     candidate_stories = multi_source if multi_source else stories
     ranked_stories = rank_stories(candidate_stories, lang, cat)[:MAX_STORIES_FOR_GEMINI]
-    if not ranked_stories:
-        return None
     if not ranked_stories:
         return None
 
@@ -911,7 +856,6 @@ def check_and_update():
         print(f"\n[{time.strftime('%H:%M:%S')}] --- ÉVALUATION INSTANT MULTI-CATÉGORIES ---", flush=True)
         for lang in ["FR", "US"]:
             for cat in CATEGORIES:
-                time.sleep(1.5)
                 process_category(lang, cat)
                 time.sleep(4.0)
         save_state()
