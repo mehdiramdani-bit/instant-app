@@ -32,7 +32,7 @@ ARTICLES_PER_SOURCE = 7
 MAX_STORIES_FOR_GEMINI = 12
 
 MODELS_TO_TRY = [
-    "gemini-flash-lite-latest",
+    "gemini-flash-lite-latest"
 ]
 
 CATEGORIES = ["general", "monde", "eco", "tech", "sciences"]
@@ -60,10 +60,26 @@ history = {
 # PERSISTANCE & EXPORT
 # ============================================================
 
+def export_news_for_ui():
+    ui_payload = {"FR": [], "US": []}
+    for lang in ["FR", "US"]:
+        for cat in CATEGORIES:
+            item = current_news[lang][cat]
+            ui_payload[lang].append({
+                "category": cat,
+                "headline": item["headline"],
+                "url": item["url"],
+                "source": item["source"],
+                "updated_at": item["updated_at"]
+            })
+    with open(OUTPUT_JSON, "w", encoding="utf-8") as f:
+        json.dump(ui_payload, f, ensure_ascii=False, indent=2)
+
 def load_state():
     global current_news, story_memory, history
     if not os.path.exists(STATE_FILE):
-        print("💾 [STATE] Aucun état précédent.", flush=True)
+        print("💾 [STATE] Aucun état précédent. Initialisation.", flush=True)
+        export_news_for_ui()
         return
 
     try:
@@ -71,6 +87,7 @@ def load_state():
             saved = json.load(f)
 
         if not isinstance(saved, dict):
+            export_news_for_ui()
             return
 
         for lang in ["FR", "US"]:
@@ -90,8 +107,10 @@ def load_state():
                         history[lang][cat] = saved["history"][lang][cat][-MAX_HISTORY:]
 
         print("💾 [STATE] État restauré.", flush=True)
+        export_news_for_ui()
     except Exception as e:
         print(f"⚠️ [STATE] Erreur lecture : {e}", flush=True)
+        export_news_for_ui()
 
 def save_state():
     try:
@@ -108,24 +127,18 @@ def save_state():
     except Exception as e:
         print(f"⚠️ [STATE] Erreur sauvegarde : {e}", flush=True)
 
-def export_news_for_ui():
-    ui_payload = {"FR": [], "US": []}
-    for lang in ["FR", "US"]:
-        for cat in CATEGORIES:
-            item = current_news[lang][cat]
-            ui_payload[lang].append({
-                "category": cat,
-                "headline": item["headline"],
-                "url": item["url"],
-                "source": item["source"],
-                "updated_at": item["updated_at"]
-            })
-    with open(OUTPUT_JSON, "w", encoding="utf-8") as f:
-        json.dump(ui_payload, f, ensure_ascii=False, indent=2)
-
 # ============================================================
 # UTILITAIRES TEXTE & CLUSTERING
 # ============================================================
+
+def clean_typography(title: str, lang: str = "FR") -> str:
+    if not title:
+        return ""
+    title = title.strip()
+    title = re.sub(r'[«»“”„‟]', '"', title)
+    title = re.sub(r'"\s+', '"', title)
+    title = re.sub(r'\s+"', '"', title)
+    return title
 
 def now_iso():
     return datetime.now(timezone.utc).isoformat()
@@ -196,13 +209,13 @@ def sanitize_headline(text):
                 return " : " + w.lower()
             return m.group(0)
         text = re.sub(r" :\s+([A-Za-zÀ-ÖØ-öø-ÿ]+)", _lower_after, text)
-    return text.strip()
+    return clean_typography(text.strip())
 
 def validate_headline(headline):
     if not headline:
         return False
     length = len(headline.strip())
-    if length < 65 or length > 75:
+    if length < 55 or length > 85:
         return False
     return True
 
@@ -384,13 +397,6 @@ def current_story_age_minutes(lang, cat):
 def story_is_current(lang, cat, story_id):
     return current_news[lang][cat].get("story_id") == story_id
 
-def basic_story_score(story):
-    sources = story.get("source_count", 0)
-    seen_count = min(story.get("seen_count", 0), 5)
-    if sources >= 2:
-        return (sources * 50) + (seen_count * 3)
-    return seen_count
-
 def rank_stories(stories, lang, cat):
     return sorted(
         stories,
@@ -485,7 +491,7 @@ CATEGORY_CRITERIA_FR = {
     "general": """PRIORITÉ NATIONALE STRICTE & ANCRAGE FRANCE
 - Priorité absolue aux faits majeurs nationaux, vie publique, société, institutions et événements ayant un impact direct sur le territoire français.
 - Seuil d'exception internationale STRICTISSIME : toléré UNIQUEMENT en cas d'onde de choc planétaire historique éclipsant totalement l'actualité nationale (déclenchement d'un conflit mondial, attentat historique mondial, crise sanitaire globale majeure).
-- VERROU ANTI-DOUBLON (STRICT) : INTERDICTION FORMELLE d'importer une actualité étrangère ou géopolitique sous prétexte d'un angle secondaire (ex. réactions diplomatiques de routine, quelques ressortissants sur place). L'international pur relève EXCLUSIVEMENT de la rubrique Monde.
+- VERROU ANTI-DOUBLON (STRICT) : INTERDICTION FORMELLE d'importer une actualité étrangère ou géopolitique sous prétexte d'un angle secondaire. L'international pur relève EXCLUSIVEMENT de la rubrique Monde.
 - Écarte : faits divers locaux sans portée nationale, météo ordinaire, querelles partisanes mineures.""",
 
     "monde": """GÉOPOLITIQUE, RELATIONS INTERNATIONALES ET CONFLITS MONDIAUX
@@ -510,8 +516,8 @@ CATEGORY_CRITERIA_FR = {
 CATEGORY_CRITERIA_US = {
     "general": """STRICT NATIONAL PROXIMITY & US INSTITUTIONS
 - Absolute priority to major national news, domestic policy, federal institutions, and society events directly impacting the United States.
-- STRICT INTERNATIONAL EXCEPTION: Allowed ONLY for seismic global events that completely overshadow domestic news (outbreak of major world war, historic global terror event, major global health crisis).
-- ANTI-DUPLICATE LOCK: STRICTLY FORBIDDEN to import foreign or international events using minor US angles (e.g. routine diplomatic statements, few citizens caught abroad). Pure international belongs EXCLUSIVELY to World.
+- STRICT INTERNATIONAL EXCEPTION: Allowed ONLY for seismic global events that completely overshadow domestic news.
+- ANTI-DUPLICATE LOCK: STRICTLY FORBIDDEN to import foreign or international events using minor US angles.
 - Exclude: routine local crime, isolated weather advisories, minor political infighting.""",
 
     "monde": """GLOBAL GEOPOLITICS, INTERNATIONAL CONFLICTS & DIPLOMACY
@@ -521,7 +527,7 @@ CATEGORY_CRITERIA_US = {
 
     "eco": """MACROECONOMICS, CORPORATE DEVELOPMENTS & FISCAL IMPACT
 - Federal Reserve policy, inflation, labor market benchmarks, national fiscal legislation, and major corporate shifts.
-- STRICTLY EXCLUDE: political campaigns, local/special elections, stump speeches, and partisan claims lacking direct and enacted macroeconomic impact.
+- STRICTLY EXCLUDE: political campaigns, local/special elections, stump speeches, and partisan claims lacking direct macroeconomic impact.
 - Exclude: personal investment advice, intraday single-stock noise, and sponsored content.""",
 
     "tech": """TECHNOLOGICAL BREAKTHROUGHS, AI & INFRASTRUCTURE
@@ -561,8 +567,8 @@ AFFICHÉE DEPUIS: {current_age if current_age is not None else "inconnu"} minute
 ============================================================
 MISSION & CONSENSUS ÉDITORIAL (RÈGLE ABSOLUE)
 ============================================================
-1. CONSENSUS ÉDITORIAL ABSOLU : Choisis TOUJOURS la story portée par le plus grand nombre de sources distinctes (SOURCE_COUNT le plus élevé). Aucun angle isolé ou papier de fond ne peut être sélectionné face à un événement partagé par les rédactions.
-2. SELECTION DE L'ÉVÉNEMENT MAJEUR : Choisis le fait brut le plus lourd en vies humaines, en impact géopolitique ou en conséquences concrètes (ex: inondations historiques, sommets, accords).
+1. CONSENSUS ÉDITORIAL ABSOLU : Choisis TOUJOURS la story portée par le plus grand nombre de sources distinctes (SOURCE_COUNT le plus élevé).
+2. SELECTION DE L'ÉVÉNEMENT MAJEUR : Choisis le fait brut le plus lourd en impact direct.
 3. INTERDICTION DES TITRES INTERROGATIFS OU D'OPINION : Ton titre ne doit jamais être une question ni une analyse subjective.
 
 Choisis UNE story.
@@ -573,30 +579,20 @@ Choisis UNE story.
 
 SUJET UNIQUE ET STRICT (INTERDICTION DES TITRES CHIMÈRES / HYBRIDES)
 - Le titre doit porter sur UN SEUL et UNIQUE événement précis.
-- INTERDICTION ABSOLUE de fusionner deux actualités distinctes dans le même titre avec des connecteurs ('alors que', 'pendant que', 'et', 'tandis que').
-- Développe les conséquences directes du sujet choisi, mais n'ajoute jamais une seconde actualité pour combler l'espace.
+- INTERDICTION ABSOLUE de fusionner deux actualités distinctes dans le même titre.
 
 {criteria}
 
 HEADLINE
 Si CHANGE, rédige un titre :
-- RÉÉCRITURE OBLIGATOIRE : Interdiction formelle de recopier le titre brut d un flux RSS. Synthétise l événement majeur avec tes propres mots.
+- RÉÉCRITURE OBLIGATOIRE : Interdiction de recopier le titre brut d'un flux.
 - Style grand quotidien : fluide, percutant et autonome.
-- Structure libre : Phrase directe OU formule "Sujet/Cadre : action précise" (minuscule après les deux-points, sauf nom propre).
 - Longueur cible : STRICTEMENT entre 65 et 75 caractères (espaces compris, idéalement 70 car.).
 - Utilise l'apostrophe courbe (’).
 
 SORTIE STRICTE
 Retourne exactement une seule ligne :
 ACTION|||STORY_ID|||HEADLINE
-
-Exemples :
-KEEP|||{current_story_id}|||{current.get("headline", "")}
-CHANGE|||fr_{cat}_abc123def456|||Titre réécrit de 60 à 75 caractères factuel et percutant
-
-- FILTRE POLITIQUE & SOCIÉTÉ [FR - GENERAL] :
-  * PRIVILÉGIER : Les faits institutionnels tangibles, décisions de l'exécutif en exercice (gouvernement, ministères), lois adoptées ou débattues au Parlement, décisions de justice, mouvements sociaux et transformations de la société française.
-  * EXCLUSION STRICTE : Tout discours de campagne, promesse électorale, proposition de programme ou petite phrase émanant de candidats à des élections (présidentielle, législatives, etc.) n'exerçant pas de fonction exécutive directe. Ne retiens pas de simples intentions ou polémiques de campagne sans impact institutionnel immédiat.
 """
 
 def build_prompt_us(cat, stories_text, current):
@@ -627,38 +623,32 @@ DISPLAYED FOR: {current_age if current_age is not None else "unknown"} minutes
 ============================================================
 MISSION & MANDATORY EDITORIAL CONSENSUS
 ============================================================
-1. STRICT CONSENSUS MANDATE : ALWAYS select the story backed by the highest number of distinct outlets (highest SOURCE_COUNT). Never pick an isolated story when a multi-source news event is present.
-2. BREAKING FACTUAL IMPACT: Choose the single biggest verified hard news event (human toll, major economic/policy shift, structural breakthrough) over cold analysis or feature pieces.
+1. STRICT CONSENSUS MANDATE : ALWAYS select the story backed by the highest number of distinct outlets.
+2. BREAKING FACTUAL IMPACT: Choose the single biggest verified hard news event over cold analysis.
 3. NO QUESTIONS OR CLICKBAIT: Never output a headline formatted as a question, rumor, or subjective opinion.
 
 Choose ONE story.
-- If current STORY_ID is "none" or empty : You MUST choose ACTION CHANGE to establish the initial standout headline.
+- If current STORY_ID is "none" or empty : You MUST choose ACTION CHANGE.
 - If a story is already displayed :
   1. KEEP: Current story remains the best choice.
-  2. CHANGE: Another story is clearly superior and justifies a switch.
+  2. CHANGE: Another story is clearly superior.
 
 STRICT SINGLE STORY RULE (NO HYBRID / FRANKENSTEIN HEADLINES)
 - The headline must focus on ONE SINGLE event.
-- STRICTLY FORBIDDEN to combine two separate news events using connectors ('as', 'while', 'and', 'amid').
-- Elaborate on key consequences—NEVER append a second parallel story just to fill space.
 
 {criteria}
 
 HEADLINE
 If CHANGE, write a headline:
-- MANDATORY REWRITE: Strictly forbidden to copy verbatim raw RSS feed titles. Synthesize the key development in your own words.
+- MANDATORY REWRITE: Do not copy verbatim raw RSS feed titles.
 - Crisp, authoritative major newspaper style, completely self-contained.
-- Structure: Active sentence OR "Topic: Specific Action".
 - Target: STRICTLY between 65 and 75 characters (including spaces, ideally 70 chars).
 - Use curly apostrophes (’ only).
 
 STRICT OUTPUT
 Return exactly one single line:
 ACTION|||STORY_ID|||HEADLINE
-
-Examples:
-KEEP|||{current_story_id}|||{current.get("headline", "")}
-CHANGE|||us_{cat}_abc123def456|||Factual and authoritative headline between 60 and 75 chars"""
+"""
 
 # ============================================================
 # GEMINI ENGINE
@@ -738,20 +728,8 @@ def evaluate_category(lang, cat, stories):
 
             action, story_id, headline = decision["action"], decision["story_id"], decision["headline"]
 
-            if action == "CHANGE" and not (65 <= len(headline) <= 75):
-                try:
-                    calib_prompt = f"Réécris ce titre pour qu il fasse STRICTEMENT entre 65 et 75 caractères (espaces compris, cible: 70 car.). Réponds UNIQUEMENT avec le titre réécrit sans guillemets ni explications :\n{headline}" if lang == "FR" else f"Rewrite this headline to be STRICTLY between 65 and 75 characters (including spaces, target: 70 chars). Return ONLY the rewritten text without quotes or explanations:\n{headline}"
-                    r_calib = client.models.generate_content(model=model_name, contents=calib_prompt)
-                    if r_calib and r_calib.text:
-                        c_headline = sanitize_headline(r_calib.text.strip())
-                        if 65 <= len(c_headline) <= 75:
-                            headline = c_headline
-                except Exception:
-                    pass
-
             if action == "KEEP":
                 if not current.get("story_id"):
-                    # Forcer un cycle de réécriture propre si aucun titre n est en mémoire
                     continue
                 print(f"↩️ [GEMINI] KEEP [{lang} - {cat}] : {current['headline'][:50]}...", flush=True)
                 return {"action": "KEEP", "story_id": current["story_id"], "headline": current["headline"]}
@@ -763,17 +741,14 @@ def evaluate_category(lang, cat, stories):
             if not selected_story:
                 continue
 
-            headline = clean_typography(headline, lang)
             # Ajustement si léger dépassement
             if len(headline) > 75:
                 trimmed = headline[:74].rsplit(" ", 1)[0]
-                if len(trimmed) >= 60:
+                if len(trimmed) >= 55:
                     headline = trimmed
-            
+
             if not validate_headline(headline):
-                # Si encore hors limite, on accepte entre 60 et 80 pour ne pas perdre la catégorie
-                if not (60 <= len(headline) <= 80):
-                    continue
+                continue
 
             if should_block_switch(lang, cat, selected_story):
                 print(f"🛑 [STABILITY] Changement bloqué (inertie) pour [{lang} - {cat}] : {headline}", flush=True)
@@ -796,7 +771,7 @@ def evaluate_category(lang, cat, stories):
             err_msg = str(err)
             print(f"↳ Tentative {model_name} : {err_msg[:100]}...", flush=True)
             if "429" in err_msg or "RESOURCE_EXHAUSTED" in err_msg:
-                time.sleep(8)
+                time.sleep(10)
             continue
 
     print(f"❌ [GEMINI] Aucun modèle n'a pu répondre pour [{lang} - {cat}].", flush=True)
