@@ -410,6 +410,14 @@ def fetch_rss_items(sources):
     seen_titles = set()
     item_id = 1
 
+    EDITORIAL_BLACKLIST = [
+        "l'éco du monde", "good morning business", "les experts :", 
+        "intégrale bourse", "le grand journal de l'éco", "la quotidienne",
+        "podcast", "replay", "tribune", "chronique", "édito", "edito", 
+        "analyse :", "décryptage", "billet", "meeting", "opinion", 
+        "op-ed", "column", "analysis:"
+    ]
+
     for source in sources:
         try:
             req = urllib.request.Request(
@@ -433,11 +441,7 @@ def fetch_rss_items(sources):
                     continue
 
                 t_lower = title.lower()
-                if any(x in t_lower for x in [
-                    "l'éco du monde", "good morning business", "les experts :", 
-                    "intégrale bourse", "le grand journal de l'éco", "la quotidienne",
-                    "podcast", "replay"
-                ]) or re.search(r"-\s*\d{2}/\d{2}$", title.strip()):
+                if any(x in t_lower for x in EDITORIAL_BLACKLIST) or re.search(r"-\s*\d{2}/\d{2}$", title.strip()):
                     continue
 
                 norm_key = re.sub(r"[^\w\s]", "", title.lower()).strip()
@@ -489,9 +493,12 @@ HEADLINES:
 # ============================================================
 
 CATEGORY_CRITERIA_FR = {
-    "general": """PRIORITÉ NATIONALE STRICTE & ANCRAGE FRANCE
-- Priorité absolue aux faits majeurs nationaux, vie publique, société, institutions et événements ayant un impact direct sur le territoire français.
-- Seuil d'exception internationale STRICTISSIME : toléré UNIQUEMENT en cas d'onde de choc planétaire historique éclipsant totalement l'actualité nationale (déclenchement d'un conflit mondial, attentat historique mondial, crise sanitaire globale majeure).
+    "general": """PRIORITÉ NATIONALE STRICTE, FAITS BRUTS & ANCRAGE FRANCE
+- Priorité absolue aux faits institutionnels majeurs, décisions exécutives actées, lois votées, verdicts de justice et événements de société à impact direct.
+- CADRE ÉLECTORAL & OPINION :
+  • ÉCARTE STRICTEMENT : déclarations d'intention, petites phrases, polémiques de campagne, meetings, tribunes, éditoriaux et chroniques d'opinion sans fait matériel nouveau.
+  • SONDAGES MAJEURS ACCEPTÉS : Un sondage d'institut de référence (Ifop, Ipsos, Elabe...) est toléré UNIQUEMENT s'il révèle une bascule majeure, un tournant inédit ou un écart significatif dans la campagne nationale. Écarte les variations mineures de marge d'erreur.
+  • Ne retiens de la vie politique que les actes officiels ou les évolutions structurelles majeures.
 - VERROU ANTI-DOUBLON (STRICT) : INTERDICTION FORMELLE d'importer une actualité étrangère ou géopolitique sous prétexte d'un angle secondaire. L'international pur relève EXCLUSIVEMENT de la rubrique Monde.
 - Écarte : faits divers locaux sans portée nationale, météo ordinaire, querelles partisanes mineures.""",
 
@@ -502,7 +509,7 @@ CATEGORY_CRITERIA_FR = {
 
     "eco": """MACROÉCONOMIE, GRANDES ENTREPRISES & IMPACT FINANCIER RÉEL
 - Décisions budgétaires d'État, inflation, pouvoir d'achat, taux directeurs, réformes structurelles, fusions/acquisitions majeures et emploi.
-- ÉCARTE IMPÉRATIVEMENT : joutes électorales, élections partielles ou locales, promesses de campagne et déclarations partisanes sans décision économique exécutoire immédiate.
+- ÉCARTE IMPÉRATIVEMENT : joutes électorales, promesses de campagne et déclarations partisanes sans décision économique exécutoire immédiate.
 - Écarte également : conseils en gestion de patrimoine individuel, micro-cours de bourse quotidiens et publireportages.""",
 
     "tech": """RUPTURES TECHNOLOGIQUES, IA ET ENJEUX INDUSTRIELS
@@ -515,11 +522,13 @@ CATEGORY_CRITERIA_FR = {
 }
 
 CATEGORY_CRITERIA_US = {
-    "general": """STRICT NATIONAL PROXIMITY & US INSTITUTIONS
-- Absolute priority to major national news, domestic policy, federal institutions, and society events directly impacting the United States.
-- STRICT INTERNATIONAL EXCEPTION: Allowed ONLY for seismic global events that completely overshadow domestic news.
+    "general": """STRICT NATIONAL HARD NEWS & VERIFIED DOMESTIC IMPACT
+- Absolute priority to enacted executive actions, passed federal legislation, Supreme Court rulings, and major domestic events directly impacting the United States.
+- CAMPAIGN & OPINION RULES:
+  • STRICTLY EXCLUDE: stump speeches, debate fallout, candidate attacks, political punditry, op-eds, guest columns, and unverified rumors.
+  • MAJOR POLLS PERMITTED: A poll from a major benchmark source (e.g. Gallup, Siena/NYT, Quinnipiac) is allowed ONLY if it demonstrates a decisive shift, historic momentum, or major national turning point. Disregard routine statistical noise.
 - ANTI-DUPLICATE LOCK: STRICTLY FORBIDDEN to import foreign or international events using minor US angles.
-- Exclude: routine local crime, isolated weather advisories, minor political infighting.""",
+- Exclude: routine local crime, isolated weather advisories, subjective roundtables.""",
 
     "monde": """GLOBAL GEOPOLITICS, INTERNATIONAL CONFLICTS & DIPLOMACY
 - Major cross-border conflicts, international treaties, global summits, humanitarian and democratic crises outside domestic US borders.
@@ -528,7 +537,7 @@ CATEGORY_CRITERIA_US = {
 
     "eco": """MACROECONOMICS, CORPORATE DEVELOPMENTS & FISCAL IMPACT
 - Federal Reserve policy, inflation, labor market benchmarks, national fiscal legislation, and major corporate shifts.
-- STRICTLY EXCLUDE: political campaigns, local/special elections, stump speeches, and partisan claims lacking direct macroeconomic impact.
+- STRICTLY EXCLUDE: political campaigns, special elections, stump speeches, and partisan claims lacking direct macroeconomic impact.
 - Exclude: personal investment advice, intraday single-stock noise, and sponsored content.""",
 
     "tech": """TECHNOLOGICAL BREAKTHROUGHS, AI & INFRASTRUCTURE
@@ -744,8 +753,6 @@ def evaluate_category(lang, cat, stories):
 
             if not selected_story:
                 continue
-
-# Pas de découpage de phrase mécanique
 
             if not validate_headline(headline):
                 continue
