@@ -26,7 +26,7 @@ FEEDS = {
             {"source": "Frandroid", "url": "https://www.frandroid.com/feed"},
             {"source": "01net", "url": "https://www.01net.com/actualites/feed"},
             {"source": "Clubic", "url": "https://www.clubic.com/feed/news.rss"},
-            {"source": "Siècle Digital", "url": "https://siecledigital.fr/feed/"}
+            {"source": "Les Numériques", "url": "https://www.lesnumeriques.com/rss/news.xml"}
         ],
         "sciences": [
             {"source": "Sciences et Avenir", "url": "https://www.sciencesetavenir.fr/rss.xml"},
