@@ -850,7 +850,7 @@ def check_and_update():
         for lang in ["FR", "US"]:
             for cat in CATEGORIES:
                 process_category(lang, cat)
-                time.sleep(7.0)
+                time.sleep(10.0)
         save_state()
         print("--- FIN ÉVALUATION ---\n", flush=True)
     finally:
@@ -908,4 +908,4 @@ if __name__ == "__main__":
             break
         except Exception as e:
             print(f"⚠️ [MAIN LOOP] {e}", flush=True)
-            time.sleep(7.0)
+            time.sleep(10.0)
