@@ -725,66 +725,59 @@ def evaluate_category(lang, cat, stories):
     prompt = build_prompt_fr(cat, stories_text, current) if lang == "FR" else build_prompt_us(cat, stories_text, current)
 
     for model_name in MODELS_TO_TRY:
-        for attempt in range(1, 4):
-            try:
-                print(f"🤖 [GEMINI] [{lang} - {cat.upper()}] → {model_name} (essai {attempt}/3)", flush=True)
-                response = client.models.generate_content(
-                    model=model_name,
-                    contents=prompt,
-                    config={"http_options": {"timeout": 45000}}
-                )
-                if not response or not response.text:
-                    time.sleep(1.5)
-                    continue
-
-                decision = parse_gemini_decision(response.text)
-                if not decision:
-                    time.sleep(1.5)
-                    continue
-
-                action, story_id, headline = decision["action"], decision["story_id"], decision["headline"]
-
-                if action == "KEEP":
-                    if not current.get("story_id"):
-                        continue
-                    print(f"↩️ [GEMINI] KEEP [{lang} - {cat}] : {current['headline'][:50]}...", flush=True)
-                    return {"action": "KEEP", "story_id": current["story_id"], "headline": current["headline"]}
-
-                selected_story = next((s for s in ranked_stories if s["story_id"] == story_id), None)
-                if not selected_story:
-                    selected_story = story_memory[lang][cat].get(story_id)
-
-                if not selected_story:
-                    continue
-
-                if not validate_headline(headline):
-                    continue
-
-                if should_block_switch(lang, cat, selected_story):
-                    print(f"🛑 [STABILITY] Changement bloqué (inertie) pour [{lang} - {cat}] : {headline}", flush=True)
-                    return {"action": "KEEP", "story_id": current.get("story_id"), "headline": current.get("headline")}
-
-                article = choose_best_article(selected_story)
-                if not article:
-                    continue
-
-                print(f"🔄 [GEMINI] CHANGE [{lang} - {cat}] → {headline}", flush=True)
-                return {
-                    "action": "CHANGE",
-                    "story_id": selected_story["story_id"],
-                    "headline": headline,
-                    "url": article["url"],
-                    "source": article["source"],
-                    "article_id": article["id"],
-                }
-            except Exception as err:
-                err_msg = str(err)
-                print(f"↳ Tentative {model_name} (essai {attempt}/3) : {err_msg[:90]}...", flush=True)
-                if any(k in err_msg for k in ["503", "429", "RESOURCE_EXHAUSTED", "UNAVAILABLE"]):
-                    time.sleep(2.0 * attempt)
-                else:
-                    time.sleep(1.0)
+        try:
+            print(f"🤖 [GEMINI] [{lang} - {cat.upper()}] → {model_name}", flush=True)
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config={"http_options": {"timeout": 45000}}
+            )
+            if not response or not response.text:
                 continue
+
+            decision = parse_gemini_decision(response.text)
+            if not decision:
+                continue
+
+            action, story_id, headline = decision["action"], decision["story_id"], decision["headline"]
+
+            if action == "KEEP":
+                if not current.get("story_id"):
+                    continue
+                print(f"↩️ [GEMINI] KEEP [{lang} - {cat}] : {current['headline'][:50]}...", flush=True)
+                return {"action": "KEEP", "story_id": current["story_id"], "headline": current["headline"]}
+
+            selected_story = next((s for s in ranked_stories if s["story_id"] == story_id), None)
+            if not selected_story:
+                selected_story = story_memory[lang][cat].get(story_id)
+
+            if not selected_story:
+                continue
+
+            if not validate_headline(headline):
+                continue
+
+            if should_block_switch(lang, cat, selected_story):
+                print(f"🛑 [STABILITY] Changement bloqué (inertie) pour [{lang} - {cat}] : {headline}", flush=True)
+                return {"action": "KEEP", "story_id": current.get("story_id"), "headline": current.get("headline")}
+
+            article = choose_best_article(selected_story)
+            if not article:
+                continue
+
+            print(f"🔄 [GEMINI] CHANGE [{lang} - {cat}] → {headline}", flush=True)
+            return {
+                "action": "CHANGE",
+                "story_id": selected_story["story_id"],
+                "headline": headline,
+                "url": article["url"],
+                "source": article["source"],
+                "article_id": article["id"],
+            }
+        except Exception as err:
+            err_msg = str(err)
+            print(f"↳ Échec {model_name} : {err_msg[:90]}...", flush=True)
+            continue
 
     print(f"❌ [GEMINI] Aucun modèle n'a pu répondre pour [{lang} - {cat}].", flush=True)
     return None
