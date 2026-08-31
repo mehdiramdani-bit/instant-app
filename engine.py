@@ -32,6 +32,7 @@ ARTICLES_PER_SOURCE = 7
 MAX_STORIES_FOR_GEMINI = 12
 
 MODELS_TO_TRY = [
+    "gemini-3.6-flash",
     "gemini-flash-lite-latest",
 ]
 
