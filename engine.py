@@ -217,7 +217,7 @@ def validate_headline(headline):
     if not headline:
         return False
     length = len(headline.strip())
-    if length < 45 or length > 86:
+    if length < 40 or length > 86:
         return False
     return True
 
