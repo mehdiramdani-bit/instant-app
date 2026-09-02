@@ -591,6 +591,7 @@ Choisis UNE story.
 SUJET UNIQUE ET STRICT (INTERDICTION DES TITRES CHIMÈRES / HYBRIDES)
 - Le titre doit porter sur UN SEUL et UNIQUE événement précis.
 - INTERDICTION ABSOLUE de fusionner deux actualités distinctes dans le même titre.
+- RÈGLE ÉDITORIALE ABSOLUE : UN SEUL fait précis. Interdiction formelle de relier deux sujets distincts avec "alors que", "pendant que", "et", ou une virgule. Choisis le fait macroéconomique ou l'événement majeur et ignore le reste.
 
 {criteria}
 
@@ -647,6 +648,7 @@ Choose ONE story.
 
 STRICT SINGLE STORY RULE (NO HYBRID / FRANKENSTEIN HEADLINES)
 - The headline must focus on ONE SINGLE event.
+- RÈGLE ÉDITORIALE ABSOLUE : UN SEUL fait précis. Interdiction formelle de relier deux sujets distincts avec "as", "while", "et", ou une virgule (ex: rejette "Surprise Jobs Data Boosts US Stocks As Dell Reports Earnings"). Choisis le fait macroéconomique ou l'événement majeur et ignore le reste.
 
 {criteria}
 
