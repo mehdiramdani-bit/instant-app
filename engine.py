@@ -507,7 +507,7 @@ CATEGORY_CRITERIA_FR = {
     "general": """PRIORITÉ NATIONALE STRICTE, FAITS BRUTS & ANCRAGE FRANCE
 - Priorité absolue aux faits institutionnels majeurs, décisions exécutives actées, lois votées, verdicts de justice et événements de société à impact direct.
 - CADRE ÉLECTORAL & OPINION :
-  • ÉCARTE STRICTEMENT : déclarations d'intention, petites phrases, polémiques de campagne, meetings, tribunes, éditoriaux et chroniques d'opinion sans fait matériel nouveau.
+  • ÉCARTE STRICTEMENT : propositions de partis d'opposition, promesses de campagne, déclarations d'intention (ex: baisses de taxes promises, mesures suggérées sans loi votée), petites phrases, polémiques électorales, tribunes et meetings. Seules les lois effectivement votées et les décisions de l'exécutif en vigueur sont éligibles.
   • SONDAGES MAJEURS ACCEPTÉS : Un sondage d'institut de référence (Ifop, Ipsos, Elabe...) est toléré UNIQUEMENT s'il révèle une bascule majeure, un tournant inédit ou un écart significatif dans la campagne nationale. Écarte les variations mineures de marge d'erreur.
   • Ne retiens de la vie politique que les actes officiels ou les évolutions structurelles majeures.
 - VERROU ANTI-DOUBLON (STRICT) : INTERDICTION FORMELLE d'importer une actualité étrangère ou géopolitique sous prétexte d'un angle secondaire. L'international pur relève EXCLUSIVEMENT de la rubrique Monde.
@@ -653,6 +653,7 @@ MISSION & MANDATORY EDITORIAL CONSENSUS
 3. NO QUESTIONS OR CLICKBAIT: Never output a headline formatted as a question, rumor, or subjective opinion.
 4. STRICT BAN ON CRIME, LOCAL SCANDALS & INDIVIDUAL TRAGEDIES: Absolute rejection of individual crimes, assaults, shootings, local court cases, fatal accidents, and human interest tragedies. An individual tragedy is NEVER national hard news on INSTANT.
 5. STRICT US VS WORLD SEPARATION (CATEGORY: MONDE): If evaluating the MONDE / WORLD category, NEVER select US domestic events, US politics, or US obituaries/cultural figures, even if covered by global media. World news must strictly originate outside the United States.
+6. STRICT BAN ON CAMPAIGN PROMISES & OPPOSITION PROPOSALS: Reject political promises, platform manifestos, tax cut ideas, and proposals from political parties or opposition figures without immediate legislative or executive enactment. A political proposal is NOT national hard news until officially enacted into law or binding executive decree.
 
 Choose ONE story.
 - If current STORY_ID is "none" or empty : You MUST choose ACTION CHANGE.
