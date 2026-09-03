@@ -440,6 +440,9 @@ def fetch_rss_items(sources):
                 if not title or not link:
                     continue
 
+                if any(slug in link.lower() for slug in ["/faits-divers", "/faits_divers", "/police-justice", "/crime", "/justice-faits-divers"]):
+                    continue
+
                 if title.strip().endswith("?") or title.strip().endswith("? »") or "a-t-il" in title.lower() or "a-t-elle" in title.lower() or "pourquoi le " in title.lower():
                     continue
 
@@ -503,7 +506,7 @@ CATEGORY_CRITERIA_FR = {
   • SONDAGES MAJEURS ACCEPTÉS : Un sondage d'institut de référence (Ifop, Ipsos, Elabe...) est toléré UNIQUEMENT s'il révèle une bascule majeure, un tournant inédit ou un écart significatif dans la campagne nationale. Écarte les variations mineures de marge d'erreur.
   • Ne retiens de la vie politique que les actes officiels ou les évolutions structurelles majeures.
 - VERROU ANTI-DOUBLON (STRICT) : INTERDICTION FORMELLE d'importer une actualité étrangère ou géopolitique sous prétexte d'un angle secondaire. L'international pur relève EXCLUSIVEMENT de la rubrique Monde.
-- FAITS DIVERS & ACCIDENTS : Rejet strict des drames individuels, disparitions, homicides isolés et accidents du quotidien (chute en montagne, accident de la route ordinaire). EXCEPTION UNIQUE : catastrophes collectives majeures à lourd bilan humain (ex: accident massif de car scolaire, catastrophe ferroviaire, industrielle ou aérienne, vigilance rouge météo).""",
+- FAITS DIVERS & ACCIDENTS : Rejet strict des drames individuels, disparitions, homicides isolés et accidents du quotidien (chute en montagne, accident de la route ordinaire). EXCEPTION UNIQUE : catastrophes collectives majeures à lourd bilan humain (ex: catastrophe ferroviaire, industrielle ou aérienne, vigilance rouge météo).""",
 
     "monde": """GÉOPOLITIQUE, RELATIONS INTERNATIONALES ET CONFLITS MONDIAUX
 - Événements géopolitiques majeurs, traités, conflits armés, crises démocratiques ou humanitaires mondiales hors de France.
@@ -581,8 +584,9 @@ AFFICHÉE DEPUIS: {current_age if current_age is not None else "inconnu"} minute
 MISSION & CONSENSUS ÉDITORIAL (RÈGLE ABSOLUE)
 ============================================================
 1. PERTINENCE ET RÉCENCE : Choisis l'événement majeur du moment en tenant compte à la fois de son impact (SOURCE_COUNT) et de sa fraîcheur.
-2. SELECTION DE L'ÉVÉNEMENT MAJEUR : Choisis le fait brut le plus lourd en impact direct.
+2. ÉVÉNEMENT MAJEUR D'INTÉRÊT GÉNÉRAL : Choisis l'événement politique, économique, institutionnel ou sociétal d'envergure nationale ayant le plus fort impact collectif.
 3. INTERDICTION DES TITRES INTERROGATIFS OU D'OPINION : Ton titre ne doit jamais être une question ni une analyse subjective.
+4. INTERDICTION ABSOLUE DES FAITS DIVERS ET AFFAIRES CRIMINELLES : Rejet formel et catégorique de tout fait divers, crime, viol, agression, meurtre, disparition, accident de la route, drame familial ou affaire judiciaire individuelle. Même si le sujet fait la une d'un journal à sensation, INSTANT l'exclut totalement.
 
 Choisis UNE story.
 - Si STORY_ID actuel est "none" ou vide : Tu DOIS obligatoirement faire une action CHANGE pour sélectionner et rédiger la première actualité de référence.
@@ -640,8 +644,9 @@ DISPLAYED FOR: {current_age if current_age is not None else "unknown"} minutes
 MISSION & MANDATORY EDITORIAL CONSENSUS
 ============================================================
 1. RELEVANCE & RECENCY : Choose the most critical current event, balancing its impact (SOURCE_COUNT) and its freshness.
-2. BREAKING FACTUAL IMPACT: Choose the single biggest verified hard news event over cold analysis.
+2. MAJOR HARD NEWS OF GENERAL INTEREST: Choose the national political, legislative, economic, or societal event with the highest collective impact.
 3. NO QUESTIONS OR CLICKBAIT: Never output a headline formatted as a question, rumor, or subjective opinion.
+4. STRICT BAN ON CRIME, LOCAL SCANDALS & INDIVIDUAL TRAGEDIES: Absolute rejection of individual crimes, assaults, shootings, local court cases, fatal accidents, and human interest tragedies. An individual tragedy is NEVER national hard news on INSTANT.
 
 Choose ONE story.
 - If current STORY_ID is "none" or empty : You MUST choose ACTION CHANGE.
