@@ -387,7 +387,8 @@
 ];
 
     let newsData = { "FR": [], "US": [] };
-    let currentLang = 'FR';
+    const userLang = (navigator.language || navigator.userLanguage || '').toLowerCase();
+    let currentLang = userLang.startsWith('fr') ? 'FR' : 'US';
     let activeIndex = 0;
 
     async function loadData() {
