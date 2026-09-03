@@ -137,11 +137,11 @@ FEEDS = {
             },
             {
                 "source": "Al Jazeera English",
-                "url": "https://www.aljazeera.com/xml/rss/all.xml"
+                "url": "https://www.aljazeera.com/xml/rss/news.xml"
             },
             {
                 "source": "Associated Press World",
-                "url": "https://news.google.com/rss/search?q=site:apnews.com+world+when:1d&hl=en-US&gl=US&ceid=US:en"
+                "url": "https://news.google.com/rss/search?q=site:apnews.com/hub/world-news+when:1d&hl=en-US&gl=US&ceid=US:en"
             },
             {
                 "source": "NPR World",

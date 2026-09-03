@@ -440,7 +440,12 @@ def fetch_rss_items(sources):
                 if not title or not link:
                     continue
 
-                if any(slug in link.lower() for slug in ["/faits-divers", "/faits_divers", "/police-justice", "/crime", "/justice-faits-divers"]):
+                l_lower = link.lower()
+                if any(slug in l_lower for slug in ["/faits-divers", "/faits_divers", "/police-justice", "/crime", "/justice-faits-divers"]):
+                    continue
+
+                # Exclusion des sous-sections US/Canada injectées dans World par la BBC ou Reuters
+                if cat == "monde" and any(slug in l_lower for slug in ["/world-us-canada", "/us-news", "/us/"]):
                     continue
 
                 if title.strip().endswith("?") or title.strip().endswith("? »") or "a-t-il" in title.lower() or "a-t-elle" in title.lower() or "pourquoi le " in title.lower():
