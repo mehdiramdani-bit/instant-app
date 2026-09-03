@@ -580,7 +580,7 @@ AFFICHÉE DEPUIS: {current_age if current_age is not None else "inconnu"} minute
 ============================================================
 MISSION & CONSENSUS ÉDITORIAL (RÈGLE ABSOLUE)
 ============================================================
-1. CONSENSUS ÉDITORIAL ABSOLU : Choisis TOUJOURS la story portée par le plus grand nombre de sources distinctes (SOURCE_COUNT le plus élevé).
+1. PERTINENCE ET RÉCENCE : Choisis l'événement majeur du moment en tenant compte à la fois de son impact (SOURCE_COUNT) et de sa fraîcheur.
 2. SELECTION DE L'ÉVÉNEMENT MAJEUR : Choisis le fait brut le plus lourd en impact direct.
 3. INTERDICTION DES TITRES INTERROGATIFS OU D'OPINION : Ton titre ne doit jamais être une question ni une analyse subjective.
 
@@ -638,7 +638,7 @@ DISPLAYED FOR: {current_age if current_age is not None else "unknown"} minutes
 ============================================================
 MISSION & MANDATORY EDITORIAL CONSENSUS
 ============================================================
-1. STRICT CONSENSUS MANDATE : ALWAYS select the story backed by the highest number of distinct outlets.
+1. RELEVANCE & RECENCY : Choose the most critical current event, balancing its impact (SOURCE_COUNT) and its freshness.
 2. BREAKING FACTUAL IMPACT: Choose the single biggest verified hard news event over cold analysis.
 3. NO QUESTIONS OR CLICKBAIT: Never output a headline formatted as a question, rumor, or subjective opinion.
 
