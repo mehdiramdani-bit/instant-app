@@ -400,11 +400,13 @@ def story_is_current(lang, cat, story_id):
     return current_news[lang][cat].get("story_id") == story_id
 
 def rank_stories(stories, lang, cat):
-    return sorted(
-        stories,
-        key=lambda s: (s.get("source_count", 0), s.get("seen_count", 0)),
-        reverse=True
-    )
+    def gravity_score(s):
+        sources = s.get("source_count", 0)
+        age_mins = story_age_minutes(s)
+        age_hours = (age_mins if age_mins is not None else 0) / 60.0
+        return sources / ((age_hours + 2.0) ** 1.5)
+    
+    return sorted(stories, key=gravity_score, reverse=True)
 
 def fetch_rss_items(sources):
     items = []
