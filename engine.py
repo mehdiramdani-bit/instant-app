@@ -408,7 +408,7 @@ def rank_stories(stories, lang, cat):
     
     return sorted(stories, key=gravity_score, reverse=True)
 
-def fetch_rss_items(sources):
+def fetch_rss_items(sources, cat=None):
     items = []
     seen_titles = set()
     item_id = 1
@@ -843,7 +843,7 @@ refresh_lock = threading.Lock()
 def process_category(lang, cat):
     try:
         sources = FEEDS[lang].get(cat, [])
-        items = fetch_rss_items(sources)
+        items = fetch_rss_items(sources, cat=cat)
         if not items:
             return
 
