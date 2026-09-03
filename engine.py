@@ -507,7 +507,10 @@ CATEGORY_CRITERIA_FR = {
     "general": """PRIORITÉ NATIONALE STRICTE, FAITS BRUTS & ANCRAGE FRANCE
 - Priorité absolue aux faits institutionnels majeurs, décisions exécutives actées, lois votées, verdicts de justice et événements de société à impact direct.
 - CADRE ÉLECTORAL & OPINION :
-  • ÉCARTE STRICTEMENT : propositions de partis d'opposition, promesses de campagne, déclarations d'intention (ex: baisses de taxes promises, mesures suggérées sans loi votée), petites phrases, polémiques électorales, tribunes et meetings. Seules les lois effectivement votées et les décisions de l'exécutif en vigueur sont éligibles.
+  • ÉCARTE STRICTEMENT :
+    - Portraits politiques, analyses d'incarnation, storytelling et batailles de leadership (ex: "X s'impose", "Y veut incarner", "la stratégie de Z").
+    - Propositions de partis d'opposition, promesses de campagne, mesures suggérées sans vote parlementaire, petites phrases, polémiques et tribunes.
+  • CONDITION SINE QUA NON : un fait politique n'est éligible QUE s'il s'agit d'un acte matériel officiel et daté du jour (vote effectif d'une loi au Parlement, publication d'un décret, nomination officielle par décret, résultat d'un scrutin national, décision de justice). Tout commentaire d'influence sans acte juridique ou institutionnel est PROSCRIT.
   • SONDAGES MAJEURS ACCEPTÉS : Un sondage d'institut de référence (Ifop, Ipsos, Elabe...) est toléré UNIQUEMENT s'il révèle une bascule majeure, un tournant inédit ou un écart significatif dans la campagne nationale. Écarte les variations mineures de marge d'erreur.
   • Ne retiens de la vie politique que les actes officiels ou les évolutions structurelles majeures.
 - VERROU ANTI-DOUBLON (STRICT) : INTERDICTION FORMELLE d'importer une actualité étrangère ou géopolitique sous prétexte d'un angle secondaire. L'international pur relève EXCLUSIVEMENT de la rubrique Monde.
@@ -654,6 +657,7 @@ MISSION & MANDATORY EDITORIAL CONSENSUS
 4. STRICT BAN ON CRIME, LOCAL SCANDALS & INDIVIDUAL TRAGEDIES: Absolute rejection of individual crimes, assaults, shootings, local court cases, fatal accidents, and human interest tragedies. An individual tragedy is NEVER national hard news on INSTANT.
 5. STRICT US VS WORLD SEPARATION (CATEGORY: MONDE): If evaluating the MONDE / WORLD category, NEVER select US domestic events, US politics, or US obituaries/cultural figures, even if covered by global media. World news must strictly originate outside the United States.
 6. STRICT BAN ON CAMPAIGN PROMISES & OPPOSITION PROPOSALS: Reject political promises, platform manifestos, tax cut ideas, and proposals from political parties or opposition figures without immediate legislative or executive enactment. A political proposal is NOT national hard news until officially enacted into law or binding executive decree.
+7. STRICT BAN ON POLITICAL PROFILES & HORSE-RACE ANALYSIS: Absolute rejection of personality profiles, leadership narratives, political posturing, and editorial analysis (e.g. "X establishes themselves as the face of...", "Y attempts a comeback"). If a story is merely an analysis of political influence or party maneuvering without an official binding vote, election result, or formal government decree, it is NOT hard news.
 
 Choose ONE story.
 - If current STORY_ID is "none" or empty : You MUST choose ACTION CHANGE.
