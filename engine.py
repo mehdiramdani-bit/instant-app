@@ -503,7 +503,7 @@ CATEGORY_CRITERIA_FR = {
   • SONDAGES MAJEURS ACCEPTÉS : Un sondage d'institut de référence (Ifop, Ipsos, Elabe...) est toléré UNIQUEMENT s'il révèle une bascule majeure, un tournant inédit ou un écart significatif dans la campagne nationale. Écarte les variations mineures de marge d'erreur.
   • Ne retiens de la vie politique que les actes officiels ou les évolutions structurelles majeures.
 - VERROU ANTI-DOUBLON (STRICT) : INTERDICTION FORMELLE d'importer une actualité étrangère ou géopolitique sous prétexte d'un angle secondaire. L'international pur relève EXCLUSIVEMENT de la rubrique Monde.
-- Écarte : faits divers locaux sans portée nationale, météo ordinaire, querelles partisanes mineures.""",
+- FAITS DIVERS & MÉTÉO : Rejet par défaut. EXCEPTIONS STRICTES : acceptés uniquement s'ils provoquent un impact national historique ou structurel (ex: catastrophe climatique majeure, fait divers entraînant un changement de loi ou des émeutes). Écarte les querelles partisanes.""",
 
     "monde": """GÉOPOLITIQUE, RELATIONS INTERNATIONALES ET CONFLITS MONDIAUX
 - Événements géopolitiques majeurs, traités, conflits armés, crises démocratiques ou humanitaires mondiales hors de France.
