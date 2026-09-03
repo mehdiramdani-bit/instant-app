@@ -503,12 +503,12 @@ CATEGORY_CRITERIA_FR = {
   • SONDAGES MAJEURS ACCEPTÉS : Un sondage d'institut de référence (Ifop, Ipsos, Elabe...) est toléré UNIQUEMENT s'il révèle une bascule majeure, un tournant inédit ou un écart significatif dans la campagne nationale. Écarte les variations mineures de marge d'erreur.
   • Ne retiens de la vie politique que les actes officiels ou les évolutions structurelles majeures.
 - VERROU ANTI-DOUBLON (STRICT) : INTERDICTION FORMELLE d'importer une actualité étrangère ou géopolitique sous prétexte d'un angle secondaire. L'international pur relève EXCLUSIVEMENT de la rubrique Monde.
-- FAITS DIVERS & MÉTÉO : Rejet par défaut. EXCEPTIONS STRICTES : acceptés uniquement s'ils provoquent un impact national historique ou structurel (ex: catastrophe climatique majeure, fait divers entraînant un changement de loi ou des émeutes). Écarte les querelles partisanes.""",
+- FAITS DIVERS & ACCIDENTS : Rejet strict des drames individuels, disparitions, homicides isolés et accidents du quotidien (chute en montagne, accident de la route ordinaire). EXCEPTION UNIQUE : catastrophes collectives majeures à lourd bilan humain (ex: accident massif de car scolaire, catastrophe ferroviaire, industrielle ou aérienne, vigilance rouge météo).""",
 
     "monde": """GÉOPOLITIQUE, RELATIONS INTERNATIONALES ET CONFLITS MONDIAUX
 - Événements géopolitiques majeurs, traités, conflits armés, crises démocratiques ou humanitaires mondiales hors de France.
 - Priorité à l'actualité internationale à l'impact planétaire le plus déterminant aujourd'hui.
-- Écarte : débats de politique intérieure française et faits divers régionaux étrangers sans portée globale.""",
+- VERROU STRICT ANTI-FRANCE : ÉCARTE TOUT événement franco-français ou centré sur des figures politiques nationales, même en cas de déplacement diplomatique. La rubrique Monde est RÉSERVÉE EXCLUSIVEMENT aux événements se déroulant hors de France. Écarte les faits divers régionaux sans portée globale.""",
 
     "eco": """MACROÉCONOMIE, GRANDES ENTREPRISES & IMPACT FINANCIER RÉEL
 - Décisions budgétaires d'État, inflation, pouvoir d'achat, taux directeurs, réformes structurelles, fusions/acquisitions majeures et emploi.
@@ -531,7 +531,7 @@ CATEGORY_CRITERIA_US = {
   • STRICTLY EXCLUDE: stump speeches, debate fallout, candidate attacks, political punditry, op-eds, guest columns, and unverified rumors.
   • MAJOR POLLS PERMITTED: A poll from a major benchmark source (e.g. Gallup, Siena/NYT, Quinnipiac) is allowed ONLY if it demonstrates a decisive shift, historic momentum, or major national turning point. Disregard routine statistical noise.
 - ANTI-DUPLICATE LOCK: STRICTLY FORBIDDEN to import foreign or international events using minor US angles.
-- Exclude: routine local crime, isolated weather advisories, subjective roundtables.""",
+- ACCIDENTS & INDIVIDUAL CRIMES: Strict exclusion of isolated homicides, local trials, missing persons, and routine accidents. UNIQUE EXCEPTION: major collective disasters with massive national consequence (e.g. mass transit disaster, catastrophic industrial event, historic weather emergencies). Exclude subjective roundtables.""",
 
     "monde": """GLOBAL GEOPOLITICS, INTERNATIONAL CONFLICTS & DIPLOMACY
 - Major cross-border conflicts, international treaties, global summits, humanitarian and democratic crises outside domestic US borders.
@@ -604,6 +604,7 @@ Si CHANGE, rédige un titre :
 - Style grand quotidien : fluide, percutant et autonome.
 - Format : 10 à 13 mots maximum (longueur impérative : entre 55 et 78 caractères, espaces compris).
 - Utilise l'apostrophe courbe (’).
+- PAS DE POINT FINAL : le titre ne doit jamais se terminer par un point (".")..
 
 SORTIE STRICTE
 Retourne exactement une seule ligne :
@@ -650,7 +651,7 @@ Choose ONE story.
 
 STRICT SINGLE STORY RULE (NO HYBRID / FRANKENSTEIN HEADLINES)
 - The headline must focus on ONE SINGLE event.
-- RÈGLE ÉDITORIALE ABSOLUE : UN SEUL fait précis. Interdiction formelle de relier deux sujets distincts avec "as", "while", "et", ou une virgule (ex: rejette "Surprise Jobs Data Boosts US Stocks As Dell Reports Earnings"). Choisis le fait macroéconomique ou l'événement majeur et ignore le reste.
+- ABSOLUTE EDITORIAL RULE: ONE event only. Strictly forbidden to combine two distinct developments using "as", "while", "and", or a comma (e.g. reject "Surprise Jobs Data Boosts US Stocks As Dell Reports Earnings"). Pick the single dominant story and ignore secondary noise.
 
 {criteria}
 
