@@ -536,7 +536,7 @@ CATEGORY_CRITERIA_US = {
     "monde": """GLOBAL GEOPOLITICS, INTERNATIONAL CONFLICTS & DIPLOMACY
 - Major cross-border conflicts, international treaties, global summits, humanitarian and democratic crises outside domestic US borders.
 - Prioritize the single international development with the highest global consequence today.
-- Exclude: purely domestic US politics and minor local foreign events.""",
+- STRICT ANTI-US LOCK: Exclude ANY event taking place in the US or centered on US figures, obituaries, and domestic society, even if globally famous. International is EXCLUSIVELY for events occurring outside the United States.""",
 
     "eco": """MACROECONOMICS, CORPORATE DEVELOPMENTS & FISCAL IMPACT
 - Federal Reserve policy, inflation, labor market benchmarks, national fiscal legislation, and major corporate shifts.
