@@ -448,8 +448,20 @@ def fetch_rss_items(sources, cat=None):
                 if cat == "monde" and any(slug in l_lower for slug in ["/world-us-canada", "/us-news", "/us/"]):
                     continue
 
-                if title.strip().endswith("?") or title.strip().endswith("? »") or "a-t-il" in title.lower() or "a-t-elle" in title.lower() or "pourquoi le " in title.lower():
+                t_lower = title.lower()
+                if title.strip().endswith("?") or title.strip().endswith("? »") or "a-t-il" in t_lower or "a-t-elle" in t_lower or "pourquoi le " in t_lower:
                     continue
+
+                # Exclusion stricte des promesses de campagne et déclarations de posture
+                if cat == "general":
+                    promise_markers = [
+                        "propose de", "propose d'", "propose une", "propose un",
+                        "promet de", "promet d'", "promet une", "promet un",
+                        "plaide pour", "réclame une", "réclame un", "réclame de",
+                        "veut baisser", "veut augmenter", "veut supprimer", "veut une", "veut un"
+                    ]
+                    if any(m in t_lower for m in promise_markers):
+                        continue
 
                 t_lower = title.lower()
                 if any(x in t_lower for x in EDITORIAL_BLACKLIST) or re.search(r"-\s*\d{2}/\d{2}$", title.strip()):
