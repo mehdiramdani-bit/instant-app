@@ -783,6 +783,7 @@ def evaluate_category(lang, cat, stories):
         except Exception as err:
             err_msg = str(err)
             print(f"↳ Échec {model_name} : {err_msg[:90]}...", flush=True)
+            time.sleep(2)
             continue
 
     print(f"❌ [GEMINI] Aucun modèle n'a pu répondre pour [{lang} - {cat}].", flush=True)
