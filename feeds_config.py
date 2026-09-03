@@ -126,26 +126,26 @@ FEEDS = {
                 "url": "https://rss.politico.com/politics-news.xml"
             }
         ],
-        "monde": [
+                "monde": [
             {
-                "source": "BBC World",
-                "url": "https://feeds.bbci.co.uk/news/world/rss.xml"
+                "source": "The New York Times World",
+                "url": "https://rss.nytimes.com/services/xml/rss/nyt/World.xml"
             },
             {
-                "source": "The Guardian World",
-                "url": "https://www.theguardian.com/world/rss"
-            },
-            {
-                "source": "Al Jazeera English",
-                "url": "https://www.aljazeera.com/xml/rss/news.xml"
-            },
-            {
-                "source": "Associated Press World",
-                "url": "https://news.google.com/rss/search?q=site:apnews.com/hub/world-news+when:1d&hl=en-US&gl=US&ceid=US:en"
+                "source": "The Wall Street Journal World",
+                "url": "https://feeds.a.dj.com/rss/RSSWorldNews.xml"
             },
             {
                 "source": "NPR World",
                 "url": "https://feeds.npr.org/1004/rss.xml"
+            },
+            {
+                "source": "CBS News World",
+                "url": "https://www.cbsnews.com/latest/rss/world"
+            },
+            {
+                "source": "ABC News International",
+                "url": "https://abcnews.go.com/abcnews/internationalheadlines"
             }
         ],
         "eco": [
