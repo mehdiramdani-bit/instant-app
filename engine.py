@@ -647,6 +647,7 @@ MISSION & MANDATORY EDITORIAL CONSENSUS
 2. MAJOR HARD NEWS OF GENERAL INTEREST: Choose the national political, legislative, economic, or societal event with the highest collective impact.
 3. NO QUESTIONS OR CLICKBAIT: Never output a headline formatted as a question, rumor, or subjective opinion.
 4. STRICT BAN ON CRIME, LOCAL SCANDALS & INDIVIDUAL TRAGEDIES: Absolute rejection of individual crimes, assaults, shootings, local court cases, fatal accidents, and human interest tragedies. An individual tragedy is NEVER national hard news on INSTANT.
+5. STRICT US VS WORLD SEPARATION (CATEGORY: MONDE): If evaluating the MONDE / WORLD category, NEVER select US domestic events, US politics, or US obituaries/cultural figures, even if covered by global media. World news must strictly originate outside the United States.
 
 Choose ONE story.
 - If current STORY_ID is "none" or empty : You MUST choose ACTION CHANGE.
