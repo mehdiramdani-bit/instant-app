@@ -1,0 +1,76 @@
+{
+  "FR": [
+    {
+      "category": "general",
+      "headline": "Jean-Philippe Tanguy saisit l’Arcom après une insulte sur France Inter",
+      "url": "https://www.leparisien.fr/politique/port-du-voile-un-humoriste-de-france-inter-compare-jean-philippe-tanguy-a-un-rat-le-depute-rn-appelle-a-saisir-larcom-01-09-2026-OEZATDSDLNHWTGSQJG6LKDP6HY.php",
+      "source": "Le Parisien",
+      "updated_at": "2026-09-01T07:30:12.292528+00:00"
+    },
+    {
+      "category": "monde",
+      "headline": "Des frappes russes d’ampleur font au moins neuf morts autour de Kiev",
+      "url": "https://www.france24.com/fr/europe/20260901-en-direct-ukraine-russie-attaque-russe-massive-morts-kiev",
+      "source": "France 24",
+      "updated_at": "2026-09-01T07:30:41.550708+00:00"
+    },
+    {
+      "category": "eco",
+      "headline": "Donald Trump veut subventionner Hollywood afin d’y rapatrier la production",
+      "url": "https://www.lemonde.fr/culture/article/2026/09/01/donald-trump-veut-subventionner-hollywood-pour-rapatrier-la-production-cinematographique-aux-etats-unis_6763093_3246.html",
+      "source": "Le Monde Éco",
+      "updated_at": "2026-09-01T07:31:03.575939+00:00"
+    },
+    {
+      "category": "tech",
+      "headline": "L’Europe commande un supercalculateur IA à la France",
+      "url": "https://www.01net.com/actualites/leurope-commande-son-sixieme-supercalculateur-ia-a-une-entreprise-francaise.html",
+      "source": "01net",
+      "updated_at": "2026-09-01T07:31:21.071885+00:00"
+    },
+    {
+      "category": "sciences",
+      "headline": "Analyse en cours…",
+      "url": "",
+      "source": "",
+      "updated_at": null
+    }
+  ],
+  "US": [
+    {
+      "category": "general",
+      "headline": "Grand Canyon flash floods leave at least two dead and one missing",
+      "url": "https://www.cbsnews.com/news/grand-canyon-national-park-flood-evacuation-helicopter-rescue-phantom-ranch/",
+      "source": "CBS News US",
+      "updated_at": "2026-09-01T07:00:51.375482+00:00"
+    },
+    {
+      "category": "monde",
+      "headline": "Oil prices climb as U.S. strikes on Iranian sites stoke escalation fears",
+      "url": "https://news.google.com/rss/articles/CBMioAFBVV95cUxQTkxlME9kNGFRUWlyc1k0NW93dnBPbHRkWWtveTVWc19ybnNSV2J2SHZ1MUhZa2VrQWVRaWNWWUQ0ZnE5UmRHcjYtYXl1ZVp4OF9DU0VRdmFEVXJ4MUFnUWkzQkRsNThWbVVXcUVvUDBRYXpoeXpBcnZaX0tXTjd3V3QxNzRBMTAwY3dRSmticTlFQUtITmdqQmpRS1JyUDVS?oc=5",
+      "source": "Associated Press World",
+      "updated_at": "2026-09-01T07:01:17.286653+00:00"
+    },
+    {
+      "category": "eco",
+      "headline": "Rising bets on Federal Reserve rate hikes trigger a global bond selloff",
+      "url": "https://www.cnbc.com/2026/08/31/markets-see-warsh-endorsing-a-rate-hike-in-september-not-everyone-is-convinced.html",
+      "source": "CNBC",
+      "updated_at": "2026-09-01T07:01:41.860674+00:00"
+    },
+    {
+      "category": "tech",
+      "headline": "FTC lawsuit accuses Amazon of running a secret ad surcharge scheme",
+      "url": "https://www.theverge.com/tech/986982/amazon-advertising-prices-ftc-lawsuit",
+      "source": "The Verge",
+      "updated_at": "2026-09-01T07:02:05.203823+00:00"
+    },
+    {
+      "category": "sciences",
+      "headline": "NASA launches the Roman Space Telescope to unlock secrets of dark energy",
+      "url": "https://www.space.com/space-exploration/launches-spacecraft/roman-telescope-leaves-its-rocket-behind-space-photo-of-the-day-for-aug-31-2026",
+      "source": "Space.com",
+      "updated_at": "2026-09-01T07:02:30.808709+00:00"
+    }
+  ]
+}
