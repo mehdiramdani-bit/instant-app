@@ -892,6 +892,25 @@ def check_and_update():
         refresh_lock.release()
 
 class InstantAppHandler(http.server.SimpleHTTPRequestHandler):
+    BLOCKED_EXTENSIONS = ('.py', '.pyc', '.txt', '.sh', '.env', '.md', '.backup')
+    BLOCKED_FILES = ('requirements.txt', 'Procfile', 'render.yaml')
+
+    def send_head(self):
+        clean_path = self.path.split("?")[0].split("#")[0]
+
+        # Bloquer les fichiers et dossiers caches (.git, .env...)
+        if any(part.startswith(".") for part in clean_path.split("/")):
+            self.send_error(404, "File not found")
+            return None
+
+        # Bloquer le code source et les fichiers systeme
+        lower_path = clean_path.lower()
+        if lower_path.endswith(self.BLOCKED_EXTENSIONS) or any(clean_path.rstrip("/").endswith("/" + f) or clean_path == "/" + f for f in self.BLOCKED_FILES):
+            self.send_error(404, "File not found")
+            return None
+
+        return super().send_head()
+
     def do_GET(self):
         if self.path in ["/ping", "/cron", "/refresh"]:
             threading.Thread(target=check_and_update, daemon=True).start()
@@ -911,7 +930,6 @@ class InstantAppHandler(http.server.SimpleHTTPRequestHandler):
             return
 
         return super().do_GET()
-
 def run_http_server():
     port = int(os.environ.get("PORT", 10000))
     socketserver.TCPServer.allow_reuse_address = True
